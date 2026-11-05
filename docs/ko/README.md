@@ -17,7 +17,7 @@ Cubism, VTube Studio, 자체 런타임, 웹, 게임 엔진, 동영상으로 내�
 
 [中文](../../README.md) · [English](../en/README.md) · [日本語](../ja/README.md)
 
-[다운로드](https://github.com/tsunehimatoi/psd2live/releases/latest) · [빠른 시작](#빠른-시작) · [문서](../README.md) · [변경 이력](../zh/CHANGELOG.md) · [로드맵](../zh/ROADMAP.md)
+[다운로드](https://github.com/tsunehimatoi/psd2live/releases/latest) · [빠른 시작](#빠른-시작) · [문서](../README.md) · [변경 이력](CHANGELOG.md) · [로드맵](ROADMAP.md)
 
 </div>
 
@@ -124,13 +124,13 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 | :---: | --- | --- |
 | **무손실** | Cubism이 네이티브로 지원하거나 편집 과정에만 영향 | 메시, 디포머, 파라미터, 물리, 모션. 브러시, 분할, 자동 생성 |
 | **베이크** | Cubism에는 없지만 키폼, 파라미터, 진자로 베이크 가능 | 뼈대와 IK, 천 / 머리카락 시뮬레이션, 흔들림 생성 |
-| **런타임 전용** | 베이크할 수 없으며 자체 런타임, 웹, Godot, 래스터 내보내기에서만 동작 | 계획 중인 동적 조명과 스타일 렌더링. [로드맵](../zh/ROADMAP.md)(중국어) 참고 |
+| **런타임 전용** | 베이크할 수 없으며 자체 런타임, 웹, Godot, 래스터 내보내기에서만 동작 | 계획 중인 동적 조명과 스타일 렌더링. [로드맵](ROADMAP.md) 참고 |
 
 `.moc3` / `.cmo3`로 내보낼 때 뒤의 두 단계는 대상 버전(Cubism 3.0 – 5.3)에 맞게 변환되고 손실 보고서에 기록됩니다.
 
 ## 다운로드
 
-[Releases](https://github.com/tsunehimatoi/psd2live/releases/latest)에서 최신 버전을 받을 수 있으며, 버전별 변경 사항은 [변경 이력](../zh/CHANGELOG.md)(중국어)을 참고하세요.
+[Releases](https://github.com/tsunehimatoi/psd2live/releases/latest)에서 최신 버전을 받을 수 있으며, 버전별 변경 사항은 [변경 이력](CHANGELOG.md)을 참고하세요.
 
 | 플랫폼 | 패키지 | 설명 |
 | --- | --- | --- |
@@ -144,7 +144,7 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 
 - **업그레이드**: 설치된 폴더에 설치되어 경로를 다시 고를 필요가 없습니다. 3.1.x 이하의 EXE / MSI 설치는 자동으로 제거되고 그 폴더를 그대로 사용합니다.
 - **제거**: 설정과 작업 공간 데이터는 기본적으로 남습니다. 제거할 때 PSD2Live 데이터도 삭제할지 묻고, 「예」를 고르면 함께 삭제됩니다. 저장한 프로젝트 파일과 설치 폴더에 넣은 파일은 항상 남습니다.
-- **Linux**: 네이티브 미리보기는 XWayland가 없는 순수 Wayland와 musl(Alpine 등)을 지원하지 않으며, 이런 환경에서는 내장 렌더러로 자동 전환됩니다. [Cubism 네이티브 미리보기](../en/guide/CUBISM_SDK_SETUP.md)(영어)를 참고하세요.
+- **Linux**: 네이티브 미리보기는 XWayland가 없는 순수 Wayland와 musl(Alpine 등)을 지원하지 않으며, 이런 환경에서는 내장 렌더러로 자동 전환됩니다. [Cubism 네이티브 미리보기](guide/CUBISM_SDK_SETUP.md)를 참고하세요.
 
 </details>
 
@@ -156,7 +156,7 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 4. **저장과 내보내기**: `Ctrl+S`로 `.psd2live` 프로젝트를 저장하고, `Ctrl+G`로 `.moc3` / `.cmo3`를 내보냅니다. 다른 형식은 **파일 → 다른 형식으로 내보내기**에 있습니다.
 
 > [!TIP]
-> **처음 사용한다면 `F1`로 도움말 페이지의 「튜토리얼」을 여세요.** 앱 내 튜토리얼은 해당 컨트롤을 강조 표시하고 현재 단축키 설정에 맞춰 안내합니다. 입문자 코스(18강)와 Cubism 경험자 코스(13강)가 있으며, [사용자 가이드](../en/guide/USER_GUIDE.md)(영어)가 그 텍스트판입니다.
+> **처음 사용한다면 `F1`로 도움말 페이지의 「튜토리얼」을 여세요.** 앱 내 튜토리얼은 해당 컨트롤을 강조 표시하고 현재 단축키 설정에 맞춰 안내합니다. 입문자 코스(18강)와 Cubism 경험자 코스(13강)가 있으며, [사용자 가이드](guide/USER_GUIDE.md)가 그 텍스트판입니다.
 
 ### 소재 준비
 
@@ -167,7 +167,7 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 - 앞머리와 뒷머리를 나누고, 가려지는 영역에 여유를 둡니다.
 - 몸은 대체로 똑바로 세우고, 레이어 효과와 텍스트는 미리 래스터화합니다.
 
-전체 명명 규칙은 [PSD 소재와 명명 규칙](../en/spec/PSD_LAYER_SPEC.md)(영어)에 있습니다. 인식되지 않은 레이어도 남아 있으며 화면에서 직접 종류를 지정할 수 있습니다.
+전체 명명 규칙은 [PSD 소재와 명명 규칙](spec/PSD_LAYER_SPEC.md)에 있습니다. 인식되지 않은 레이어도 남아 있으며 화면에서 직접 종류를 지정할 수 있습니다.
 
 ## 내보내기와 재생
 
@@ -181,12 +181,12 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 | **PSD** | 현재 포즈의 레이어 PSD, 또는 생성 레이어를 포함한 원본 PSD |
 | **실험적** | Spine 4.2, DragonBones 5.5, glTF 2.0은 명령줄에서만. Unity 프리팹은 **파일 → 다른 형식으로 내보내기** |
 
-`Ctrl+G`로 Cubism 형식을 내보내며 대상 버전은 3.0 – 5.3(기본 5.0) 중에서 고릅니다. 나머지는 **파일 → 다른 형식으로 내보내기**에 있습니다. [내보내기 대상](../en/spec/EXPORT_TARGETS.md)(영어)을 참고하세요.
+`Ctrl+G`로 Cubism 형식을 내보내며 대상 버전은 3.0 – 5.3(기본 5.0) 중에서 고릅니다. 나머지는 **파일 → 다른 형식으로 내보내기**에 있습니다. [내보내기 대상](spec/EXPORT_TARGETS.md)을 참고하세요.
 
 > [!IMPORTANT]
-> 작업을 이어 가려면 `.psd2live` 프로젝트를 저장하세요. 원본 PSD, 소재, 설정, 모든 편집과 히스토리 분기가 들어 있습니다. 내보낼 때 함께 생기는 `.psd2live.json`은 진단 보고서일 뿐입니다. 내보내기에 성공했다고 모든 런타임에서 같은 결과가 나오는 것은 아니므로, 납품 전에 대상 편집기와 실행 환경에서 확인하세요. 지원 범위는 [런타임과 내보내기 경계](../zh/spec/RUNTIME_EXPORT_ARCHITECTURE_AND_GAPS.md)(중국어)를 참고하세요.
+> 작업을 이어 가려면 `.psd2live` 프로젝트를 저장하세요. 원본 PSD, 소재, 설정, 모든 편집과 히스토리 분기가 들어 있습니다. 내보낼 때 함께 생기는 `.psd2live.json`은 진단 보고서일 뿐입니다. 내보내기에 성공했다고 모든 런타임에서 같은 결과가 나오는 것은 아니므로, 납품 전에 대상 편집기와 실행 환경에서 확인하세요. 지원 범위는 [런타임과 내보내기 경계](spec/RUNTIME_EXPORT_ARCHITECTURE_AND_GAPS.md)를 참고하세요.
 
-내장 렌더러는 공식 SDK 없이 동작합니다. [Cubism 네이티브 미리보기](../en/guide/CUBISM_SDK_SETUP.md)(영어)는 선택 사항으로, 공식 런타임의 렌더링과 물리를 비교할 때 사용합니다.
+내장 렌더러는 공식 SDK 없이 동작합니다. [Cubism 네이티브 미리보기](guide/CUBISM_SDK_SETUP.md)는 선택 사항으로, 공식 런타임의 렌더링과 물리를 비교할 때 사용합니다.
 
 ## p2lrt 런타임
 
@@ -210,7 +210,7 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 </tr>
 </table>
 
-형식과 평가 규칙은 [런타임](../en/spec/RUNTIME.md)과 [`.p2lrt` 2.0 형식](../en/spec/P2LRT_V2.md)(영어)을 참고하세요.
+형식과 평가 규칙은 [런타임](spec/RUNTIME.md)과 [`.p2lrt` 2.0 형식](spec/P2LRT_V2.md)을 참고하세요.
 
 ## 에이전트 연결(MCP)
 
@@ -218,14 +218,14 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 2. 사용하는 호스트(Claude Code, Codex, 일반 JSON)에 맞는 명령이나 설정을 복사합니다. Stdio만 지원하는 호스트는 저장소 루트의 [`mcp_proxy.py`](../../mcp_proxy.py)를 사용합니다.
 3. 에이전트가 먼저 `workspace_overview`로 프로젝트 개요를, `workspace_inspect`로 개별 객체를 읽게 합니다. 도구로 나열되지 않은 작업은 `workspace_list_operations`로 찾아 `workspace_call`로 호출합니다.
 
-여러 편집은 `workspace_apply_edits`로 원자적으로 커밋하거나(모두 성공하거나 모두 적용되지 않음), `workspace_preview_edits`로 먼저 시험 실행할 수 있습니다. 인터페이스 설명과 호출 예시는 [MCP 사용법과 인터페이스](../en/agent/MCP_AUTHORING.md)(영어)를 참고하세요.
+여러 편집은 `workspace_apply_edits`로 원자적으로 커밋하거나(모두 성공하거나 모두 적용되지 않음), `workspace_preview_edits`로 먼저 시험 실행할 수 있습니다. 인터페이스 설명과 호출 예시는 [MCP 사용법과 인터페이스](agent/MCP_AUTHORING.md)를 참고하세요.
 
 > [!NOTE]
-> MCP 자체는 이미지를 생성하지 않으므로, 새 소재를 추가하려면 호스트에 이미지 생성 기능이 있어야 합니다. 도구를 호출할 수 있다고 복잡한 모델링 작업이 안정적으로 수행되는 것은 아니며, [실측 기록](../zh/STATUS.md)(중국어)에 실제 작업의 성공과 실패 사례가 정리되어 있습니다.
+> MCP 자체는 이미지를 생성하지 않으므로, 새 소재를 추가하려면 호스트에 이미지 생성 기능이 있어야 합니다. 도구를 호출할 수 있다고 복잡한 모델링 작업이 안정적으로 수행되는 것은 아니며, [실측 기록](STATUS.md)에 실제 작업의 성공과 실패 사례가 정리되어 있습니다.
 
 ## 소스에서 빌드
 
-JDK 21이 필요하며 Gradle은 저장소에 포함된 Wrapper를 사용합니다. Rust(cargo, rustc 1.87 이상)가 설치되어 있으면 Rust 런타임도 함께 빌드합니다. cargo가 없거나 rustc가 오래되었으면 Linux에서는 먼저 같은 `runtime/` 소스로 CI가 빌드한 라이브러리를 내려받습니다(`-Ppsd2live.prebuiltRuntime=false`로 끌 수 있음). 받을 수 없으면 알림을 표시하고 건너뛰며 편집기는 내장 평가기를 사용합니다(`rustup update` 후 빌드할 수 있습니다). macOS 13 이상에서는 `./gradlew packageDmg`로 런타임이 들어 있는 DMG를 만들 수 있으며, JBR을 따로 설치하지 않아도 됩니다. 설명은 [개발 가이드](../en/guide/DEVELOPMENT.md#tests-and-packaging)(영어)에 있습니다.
+JDK 21이 필요하며 Gradle은 저장소에 포함된 Wrapper를 사용합니다. Rust(cargo, rustc 1.87 이상)가 설치되어 있으면 Rust 런타임도 함께 빌드합니다. cargo가 없거나 rustc가 오래되었으면 Linux에서는 먼저 같은 `runtime/` 소스로 CI가 빌드한 라이브러리를 내려받습니다(`-Ppsd2live.prebuiltRuntime=false`로 끌 수 있음). 받을 수 없으면 알림을 표시하고 건너뛰며 편집기는 내장 평가기를 사용합니다(`rustup update` 후 빌드할 수 있습니다). macOS 13 이상에서는 `./gradlew packageDmg`로 런타임이 들어 있는 DMG를 만들 수 있으며, JBR을 따로 설치하지 않아도 됩니다. 설명은 [개발 가이드](guide/DEVELOPMENT.md#테스트와-패키징)에 있습니다.
 
 ```bash
 # GUI 실행(Windows: .\gradlew.bat run 또는 run-gui.bat)
@@ -243,29 +243,29 @@ python tools/examples/fetch.py --case tml
 ./gradlew packageDistributionForCurrentOS
 ```
 
-소스 빌드는 기본적으로 내장 렌더러를 사용합니다. 공식 Cubism SDK는 직접 받아 브리지 라이브러리를 따로 빌드해야 합니다. 전체 CLI 옵션, 패키징, 네이티브 미리보기 빌드는 [개발과 명령줄](../en/guide/DEVELOPMENT.md)(영어)을 참고하세요.
+소스 빌드는 기본적으로 내장 렌더러를 사용합니다. 공식 Cubism SDK는 직접 받아 브리지 라이브러리를 따로 빌드해야 합니다. 전체 CLI 옵션, 패키징, 네이티브 미리보기 빌드는 [개발과 명령줄](guide/DEVELOPMENT.md)을 참고하세요.
 
 ## 문서
 
 | 시작하기 | 리깅과 모션 | 참고 |
 | --- | --- | --- |
-| [사용자 가이드](../en/guide/USER_GUIDE.md) | [뼈대와 포즈](../en/guide/SKELETON.md) | [PSD 소재와 명명 규칙](../en/spec/PSD_LAYER_SPEC.md) |
-| [캔버스 편집](../en/guide/CANVAS_EDITOR.md) | [흔들림 생성](../en/guide/SWING.md) | [디포머와 파라미터](../en/spec/DEFORMER_AND_PARAMETER_SPEC.md) |
-| [소재와 Layout](../en/guide/LAYOUT.md) | [물리](../en/guide/PHYSICS.md) | [Layout 매니페스트](../en/spec/LAYOUT_MANIFEST.md) |
-| [앞뒤 레이어 분리](../en/guide/DEPTH_SPLIT.md) | [시뮬레이션과 베이크](../en/guide/SIMULATION.md) | [내보내기 대상](../en/spec/EXPORT_TARGETS.md) |
-| [텍스처 고해상도화](../en/guide/TEXTURE_UPSCALE.md) | [시뮬레이션 튜토리얼](../en/guide/SIMULATION_TUTORIAL.md) | [런타임](../en/spec/RUNTIME.md) |
-| [변형 경로](../en/guide/DEFORM_PATHS.md) | [MCP 사용법과 인터페이스](../en/agent/MCP_AUTHORING.md) | [`.p2lrt` 2.0 형식](../en/spec/P2LRT_V2.md) |
-| [개발과 명령줄](../en/guide/DEVELOPMENT.md) · [Cubism 네이티브 미리보기](../en/guide/CUBISM_SDK_SETUP.md) · [CI와 릴리스](../en/guide/CUBISM_CI_RELEASE.md) |  | [프로젝트 형식](../en/spec/PROJECT_FORMAT.md) · [구현 개요](../en/spec/IMPLEMENTATION_COMPARISON.md) |
+| [사용자 가이드](guide/USER_GUIDE.md) | [뼈대와 포즈](guide/SKELETON.md) | [PSD 소재와 명명 규칙](spec/PSD_LAYER_SPEC.md) |
+| [캔버스 편집](guide/CANVAS_EDITOR.md) | [흔들림 생성](guide/SWING.md) | [디포머와 파라미터](spec/DEFORMER_AND_PARAMETER_SPEC.md) |
+| [소재와 Layout](guide/LAYOUT.md) | [물리](guide/PHYSICS.md) | [Layout 매니페스트](spec/LAYOUT_MANIFEST.md) |
+| [앞뒤 레이어 분리](guide/DEPTH_SPLIT.md) | [시뮬레이션과 베이크](guide/SIMULATION.md) | [내보내기 대상](spec/EXPORT_TARGETS.md) |
+| [텍스처 고해상도화](guide/TEXTURE_UPSCALE.md) | [시뮬레이션 튜토리얼](guide/SIMULATION_TUTORIAL.md) | [런타임](spec/RUNTIME.md) |
+| [변형 경로](guide/DEFORM_PATHS.md) | [MCP 사용법과 인터페이스](agent/MCP_AUTHORING.md) | [`.p2lrt` 2.0 형식](spec/P2LRT_V2.md) |
+| [개발과 명령줄](guide/DEVELOPMENT.md) · [Cubism 네이티브 미리보기](guide/CUBISM_SDK_SETUP.md) · [CI와 릴리스](guide/CUBISM_CI_RELEASE.md) |  | [프로젝트 형식](spec/PROJECT_FORMAT.md) · [구현 개요](spec/IMPLEMENTATION_COMPARISON.md) |
 
-위 문서는 영어판으로 연결됩니다. 중국어로만 제공되는 내부 구현 문서를 포함한 전체 목록은 [문서 목록](../README.md)에서 확인할 수 있습니다. 예제 PSD와 출력 결과는 [examples](../../examples/readme.md)에, 향후 계획은 [로드맵](../zh/ROADMAP.md)(중국어)에 있습니다.
+내부 구현 문서를 포함한 전체 목록은 [문서 목록](../README.md)에서 확인할 수 있습니다. 예제 PSD와 출력 결과는 [examples](../../examples/readme.md)에, 향후 계획은 [로드맵](ROADMAP.md)에 있습니다.
 
 ## 기여하기
 
 Issue, 재현 가능한 PSD, 문서 수정, 코드 개선 모두 환영합니다.
 
 - **문제 보고**: 버전, 운영체제, 재현 단계, 기대한 결과와 실제 결과, 로그 패널의 관련 기록을 함께 첨부해 주세요.
-- **코드 제출**: 변경과 관련된 테스트(`./gradlew test`)를 먼저 실행하세요. 새로운 편집 기능은 프로젝트에 저장되고 다시 열었을 때 재생될 수 있어야 합니다. [개발과 명령줄](../en/guide/DEVELOPMENT.md)(영어)을 참고하세요.
-- **에이전트 사례**: 호스트, 모델, 재작업 횟수와 비용도 함께 기록해 주세요. 형식은 [실측 기록](../zh/STATUS.md)(중국어)을 참고하세요.
+- **코드 제출**: 변경과 관련된 테스트(`./gradlew test`)를 먼저 실행하세요. 새로운 편집 기능은 프로젝트에 저장되고 다시 열었을 때 재생될 수 있어야 합니다. [개발과 명령줄](guide/DEVELOPMENT.md)을 참고하세요.
+- **에이전트 사례**: 호스트, 모델, 재작업 횟수와 비용도 함께 기록해 주세요. 형식은 [실측 기록](STATUS.md)을 참고하세요.
 
 ## 라이선스
 
@@ -274,6 +274,6 @@ Issue, 재현 가능한 PSD, 문서 수정, 코드 개선 모두 환영합니다
 | 애플리케이션 본체, 엔진 `umamo`, Cubism 및 PSD 내보내기 대상 | [GPL-3.0](../../LICENSE) |
 | 중립 리그 IR `format-model`, 내보내기 프레임워크 `format-compile`, 나머지 내보내기 대상, Rust 런타임 `runtime/` | MIT(단독 재사용 가능) |
 
-애플리케이션 전체는 GPL-3.0으로 배포됩니다. 각 모듈의 `LICENSE`와 [모듈 표](../en/spec/EXPORT_TARGETS.md#modules)(영어)를 참고하세요. 서드파티 구성 요소는 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)에, 예제 소재의 이용 조건은 각각의 설명에 있습니다.
+애플리케이션 전체는 GPL-3.0으로 배포됩니다. 각 모듈의 `LICENSE`와 [모듈 표](spec/EXPORT_TARGETS.md#모듈)를 참고하세요. 서드파티 구성 요소는 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)에, 예제 소재의 이용 조건은 각각의 설명에 있습니다.
 
 <sub>PSD2Live는 독립 프로젝트이며 Live2D Inc.와 제휴하거나 후원을 받는 관계가 아닙니다. 이 저장소는 Live2D Cubism SDK의 독점 구성 요소를 포함하거나 배포하지 않습니다. Live2D와 Cubism은 Live2D Inc.의 상표입니다.</sub>

@@ -13,46 +13,46 @@ For hands-on learning, open the **Tutorials** on the Help page (`F1`). Chinese i
 | 文档 | 内容 | 译文 · Translations |
 | --- | --- | --- |
 | [更新日志](zh/CHANGELOG.md) | 各版本中使用者能感知到的变化 | — |
-| [操作速查](zh/guide/USER_GUIDE.md) | 与程序内教程对应的文字版、常用快捷键、工作区与纹理工作区 | [English](en/guide/USER_GUIDE.md) · [日本語](ja/guide/USER_GUIDE.md) |
-| [画布编辑](zh/guide/CANVAS_EDITOR.md) | 模式菜单（物体 / 变形 / 编辑 / 模拟 / 骨骼 / 绘画 / 预览）、形变、网格拓扑、Glue、权重、绘画会话 | [English](en/guide/CANVAS_EDITOR.md) |
-| [素材与 Layout](zh/guide/LAYOUT.md) | 素材库、先摆放再生成、重新生成、语义标签 | [English](en/guide/LAYOUT.md) |
-| [前后分层图文教程](zh/guide/DEPTH_SPLIT.md) | 衣领与脖子、头发与肩部装饰的前后遮挡，复制、黏合与橡皮擦修边 | [English](en/guide/DEPTH_SPLIT.md) |
-| [骨骼与姿态](zh/guide/SKELETON.md) | 骨架推断、绑定、IK、预设动作与烘焙结构 | [English](en/guide/SKELETON.md) |
-| [摇摆生成](zh/guide/SWING.md) | 左右 / 上下摇摆、画布手柄、摆锤与烘焙 | [English](en/guide/SWING.md) |
-| [物理](zh/guide/PHYSICS.md) | 物理组来源、摆锤画布、输入输出、预置与导出 | [English](en/guide/PHYSICS.md) |
-| [模拟与烘焙](zh/guide/SIMULATION.md) | 布料 / 头发的 2D 模拟、顶点权重组、胶水角色，烘焙为参数、关键形与摆锤 | [English](en/guide/SIMULATION.md) |
-| [模拟图文教程](zh/guide/SIMULATION_TUTORIAL.md) | 从头发与服装预设开始，调整固定点权重、重新烘焙并检查导出效果 | [English](en/guide/SIMULATION_TUTORIAL.md) |
-| [变形路径（实验性）](zh/guide/DEFORM_PATHS.md) | 路径的创建、绑定与导出方式 | [English](en/guide/DEFORM_PATHS.md) |
-| [纹理高清化](zh/guide/TEXTURE_UPSCALE.md) | 本地 nunif 配置、参数与效果检查 | [English](en/guide/TEXTURE_UPSCALE.md) |
+| [操作速查](zh/guide/USER_GUIDE.md) | 与程序内教程对应的文字版、常用快捷键、工作区与纹理工作区 | [English](en/guide/USER_GUIDE.md) · [日本語](ja/guide/USER_GUIDE.md) · [한국어](ko/guide/USER_GUIDE.md) |
+| [画布编辑](zh/guide/CANVAS_EDITOR.md) | 模式菜单（物体 / 变形 / 编辑 / 模拟 / 骨骼 / 绘画 / 预览）、形变、网格拓扑、Glue、权重、绘画会话 | [English](en/guide/CANVAS_EDITOR.md) · [한국어](ko/guide/CANVAS_EDITOR.md) |
+| [素材与 Layout](zh/guide/LAYOUT.md) | 素材库、先摆放再生成、重新生成、语义标签 | [English](en/guide/LAYOUT.md) · [한국어](ko/guide/LAYOUT.md) |
+| [前后分层图文教程](zh/guide/DEPTH_SPLIT.md) | 衣领与脖子、头发与肩部装饰的前后遮挡，复制、黏合与橡皮擦修边 | [English](en/guide/DEPTH_SPLIT.md) · [한국어](ko/guide/DEPTH_SPLIT.md) |
+| [骨骼与姿态](zh/guide/SKELETON.md) | 骨架推断、绑定、IK、预设动作与烘焙结构 | [English](en/guide/SKELETON.md) · [한국어](ko/guide/SKELETON.md) |
+| [摇摆生成](zh/guide/SWING.md) | 左右 / 上下摇摆、画布手柄、摆锤与烘焙 | [English](en/guide/SWING.md) · [한국어](ko/guide/SWING.md) |
+| [物理](zh/guide/PHYSICS.md) | 物理组来源、摆锤画布、输入输出、预置与导出 | [English](en/guide/PHYSICS.md) · [한국어](ko/guide/PHYSICS.md) |
+| [模拟与烘焙](zh/guide/SIMULATION.md) | 布料 / 头发的 2D 模拟、顶点权重组、胶水角色，烘焙为参数、关键形与摆锤 | [English](en/guide/SIMULATION.md) · [한국어](ko/guide/SIMULATION.md) |
+| [模拟图文教程](zh/guide/SIMULATION_TUTORIAL.md) | 从头发与服装预设开始，调整固定点权重、重新烘焙并检查导出效果 | [English](en/guide/SIMULATION_TUTORIAL.md) · [한국어](ko/guide/SIMULATION_TUTORIAL.md) |
+| [变形路径（实验性）](zh/guide/DEFORM_PATHS.md) | 路径的创建、绑定与导出方式 | [English](en/guide/DEFORM_PATHS.md) · [한국어](ko/guide/DEFORM_PATHS.md) |
+| [纹理高清化](zh/guide/TEXTURE_UPSCALE.md) | 本地 nunif 配置、参数与效果检查 | [English](en/guide/TEXTURE_UPSCALE.md) · [한국어](ko/guide/TEXTURE_UPSCALE.md) |
 
 ## 构建与发布 · Build and release
 
-开发中功能：[内部造型生成器与编辑器入口](zh/spec/INTERIOR_SURFACE.md) · [English](en/spec/INTERIOR_SURFACE.md)；[按纹理结构重布点](zh/spec/TEXTURE_STRUCTURE_MESH.md)。
+开发中功能：[内部造型生成器与编辑器入口](zh/spec/INTERIOR_SURFACE.md) · [English](en/spec/INTERIOR_SURFACE.md) · [한국어](ko/spec/INTERIOR_SURFACE.md)；[按纹理结构重布点](zh/spec/TEXTURE_STRUCTURE_MESH.md)。
 
 | 文档 | 内容 | 译文 · Translations |
 | --- | --- | --- |
-| [开发与命令行](zh/guide/DEVELOPMENT.md) | 源码运行、CLI 参数、测试与打包、代码结构 | [English](en/guide/DEVELOPMENT.md) · [日本語](ja/guide/DEVELOPMENT.md) |
-| [Cubism Native 预览](zh/guide/CUBISM_SDK_SETUP.md) | 可选的官方 SDK 预览桥接构建与部署 | [English](en/guide/CUBISM_SDK_SETUP.md) · [日本語](ja/guide/CUBISM_SDK_SETUP.md) |
-| [CI 与发行](zh/guide/CUBISM_CI_RELEASE.md) | GitHub Actions 测试与含 SDK 的发行流程 | [English](en/guide/CUBISM_CI_RELEASE.md) |
+| [开发与命令行](zh/guide/DEVELOPMENT.md) | 源码运行、CLI 参数、测试与打包、代码结构 | [English](en/guide/DEVELOPMENT.md) · [日本語](ja/guide/DEVELOPMENT.md) · [한국어](ko/guide/DEVELOPMENT.md) |
+| [Cubism Native 预览](zh/guide/CUBISM_SDK_SETUP.md) | 可选的官方 SDK 预览桥接构建与部署 | [English](en/guide/CUBISM_SDK_SETUP.md) · [日本語](ja/guide/CUBISM_SDK_SETUP.md) · [한국어](ko/guide/CUBISM_SDK_SETUP.md) |
+| [CI 与发行](zh/guide/CUBISM_CI_RELEASE.md) | GitHub Actions 测试与含 SDK 的发行流程 | [English](en/guide/CUBISM_CI_RELEASE.md) · [한국어](ko/guide/CUBISM_CI_RELEASE.md) |
 
 ## 格式与参考 · Formats and reference
 
 | 文档 | 内容 | 译文 · Translations |
 | --- | --- | --- |
-| [PSD 素材与命名](zh/spec/PSD_LAYER_SPEC.md) | 分层要求、图层名称表、左右与差分 | [English](en/spec/PSD_LAYER_SPEC.md) · [日本語](ja/spec/PSD_LAYER_SPEC.md) |
-| [变形器与参数](zh/spec/DEFORMER_AND_PARAMETER_SPEC.md) | 自动生成的结构、坐标约定、默认参数 | [English](en/spec/DEFORMER_AND_PARAMETER_SPEC.md) · [日本語](ja/spec/DEFORMER_AND_PARAMETER_SPEC.md) |
-| [实现概览](zh/spec/IMPLEMENTATION_COMPARISON.md) | 流水线各阶段的实现与核心不变量 | [English](en/spec/IMPLEMENTATION_COMPARISON.md) · [日本語](ja/spec/IMPLEMENTATION_COMPARISON.md) |
-| [工程格式 v2](zh/spec/PROJECT_FORMAT.md) | `.psd2live` 归档布局、v1 迁移、保存与校验 | [English](en/spec/PROJECT_FORMAT.md) |
-| [Layout 清单](zh/spec/LAYOUT_MANIFEST.md) | 分层素材的 JSON / zip 交换格式：图片、矩形、上下顺序、组、标签、差分 | [English](en/spec/LAYOUT_MANIFEST.md) |
-| [导出目标](zh/spec/EXPORT_TARGETS.md) | 中立绑定 IR、各导出格式与损失报告、模块许可证 | [English](en/spec/EXPORT_TARGETS.md) |
-| [运行时](zh/spec/RUNTIME.md) | Rust 运行时、`.p2lrt` 格式、网页播放器与 Godot 节点 | [English](en/spec/RUNTIME.md) |
-| [`.p2lrt` 2.0 格式](zh/spec/P2LRT_V2.md) | 分块容器、核心层与扩展层、演进规则 | [English](en/spec/P2LRT_V2.md) |
+| [PSD 素材与命名](zh/spec/PSD_LAYER_SPEC.md) | 分层要求、图层名称表、左右与差分 | [English](en/spec/PSD_LAYER_SPEC.md) · [日本語](ja/spec/PSD_LAYER_SPEC.md) · [한국어](ko/spec/PSD_LAYER_SPEC.md) |
+| [变形器与参数](zh/spec/DEFORMER_AND_PARAMETER_SPEC.md) | 自动生成的结构、坐标约定、默认参数 | [English](en/spec/DEFORMER_AND_PARAMETER_SPEC.md) · [日本語](ja/spec/DEFORMER_AND_PARAMETER_SPEC.md) · [한국어](ko/spec/DEFORMER_AND_PARAMETER_SPEC.md) |
+| [实现概览](zh/spec/IMPLEMENTATION_COMPARISON.md) | 流水线各阶段的实现与核心不变量 | [English](en/spec/IMPLEMENTATION_COMPARISON.md) · [日本語](ja/spec/IMPLEMENTATION_COMPARISON.md) · [한국어](ko/spec/IMPLEMENTATION_COMPARISON.md) |
+| [工程格式 v2](zh/spec/PROJECT_FORMAT.md) | `.psd2live` 归档布局、v1 迁移、保存与校验 | [English](en/spec/PROJECT_FORMAT.md) · [한국어](ko/spec/PROJECT_FORMAT.md) |
+| [Layout 清单](zh/spec/LAYOUT_MANIFEST.md) | 分层素材的 JSON / zip 交换格式：图片、矩形、上下顺序、组、标签、差分 | [English](en/spec/LAYOUT_MANIFEST.md) · [한국어](ko/spec/LAYOUT_MANIFEST.md) |
+| [导出目标](zh/spec/EXPORT_TARGETS.md) | 中立绑定 IR、各导出格式与损失报告、模块许可证 | [English](en/spec/EXPORT_TARGETS.md) · [한국어](ko/spec/EXPORT_TARGETS.md) |
+| [运行时](zh/spec/RUNTIME.md) | Rust 运行时、`.p2lrt` 格式、网页播放器与 Godot 节点 | [English](en/spec/RUNTIME.md) · [한국어](ko/spec/RUNTIME.md) |
+| [`.p2lrt` 2.0 格式](zh/spec/P2LRT_V2.md) | 分块容器、核心层与扩展层、演进规则 | [English](en/spec/P2LRT_V2.md) · [한국어](ko/spec/P2LRT_V2.md) |
 
 ## Agent（MCP）
 
 | 文档 | 内容 | 译文 · Translations |
 | --- | --- | --- |
-| [MCP 使用与接口](zh/agent/MCP_AUTHORING.md) | 接入方式、190 项公开操作、原子批量与试运行、调用示例、状态与历史 | [English](en/agent/MCP_AUTHORING.md) |
+| [MCP 使用与接口](zh/agent/MCP_AUTHORING.md) | 接入方式、190 项公开操作、原子批量与试运行、调用示例、状态与历史 | [English](en/agent/MCP_AUTHORING.md) · [한국어](ko/agent/MCP_AUTHORING.md) |
 | [Agent 设计与验收](zh/agent/AGENT_DESIGN.md) | 分工边界、工具设计原则、任务验收步骤 | — |
 | [能力实测](zh/STATUS.md) | 真实任务的实测记录与记录格式 | — |
 
