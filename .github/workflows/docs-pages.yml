@@ -1,0 +1,57 @@
+# Rebuilds docs/index.html (all Korean docs in one page) from docs/ko/*.md
+# and deploys the docs/ folder to GitHub Pages.
+# Pages must use "GitHub Actions" as its source (Settings → Pages).
+name: Docs site
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - 'tools/docs-site/**'
+      - '.github/workflows/docs-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # Only the fork publishes this site; skip elsewhere (e.g. upstream).
+    if: github.repository == 'RohJooHoon/psd2live'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build docs/index.html
+        working-directory: tools/docs-site
+        run: |
+          npm install --no-audit --no-fund
+          node build.js
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
