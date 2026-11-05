@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# macOS / Linux counterpart of run-gui.bat: build if needed, then start the app directly with java
+# so closing the window or Ctrl+C reaches the app itself instead of Gradle.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# The build needs exactly JDK 21 (jvmToolchain(21)). `java_home -v 21` may hand back a newer JDK,
+# so check each candidate's real version. Override with PSD2LIVE_JAVA_HOME.
+is_jdk21() { [[ -x "$1/bin/java" ]] && "$1/bin/java" -version 2>&1 | grep -q 'version "21[."]'; }
+if [[ -z "${PSD2LIVE_JAVA_HOME:-}" ]]; then
+	for candidate in \
+		/opt/homebrew/opt/openjdk@21 \
+		/usr/local/opt/openjdk@21 \
+		"$(/usr/libexec/java_home -v 21 2>/dev/null || true)" \
+		"${JAVA_HOME:-}"; do
+		if [[ -n "$candidate" ]] && is_jdk21 "$candidate"; then
+			PSD2LIVE_JAVA_HOME="$candidate"
+			break
+		fi
+	done
+fi
+if [[ -z "${PSD2LIVE_JAVA_HOME:-}" ]]; then
+	echo "JDK 21 not found. Install it with: brew install openjdk@21" >&2
+	exit 1
+fi
+export JAVA_HOME="$PSD2LIVE_JAVA_HOME"
+
+./gradlew --no-daemon -q writeRunArgs
+exec "$(cat build/run/java)" @build/run/jvm.args "$@"
