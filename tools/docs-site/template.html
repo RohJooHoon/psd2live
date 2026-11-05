@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSD2Live 문서</title>
+<link rel="icon" href="branding/psd2live-icon-mesh.png">
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f6f7f9;
+  --bg-sunk: #eef0f3;
+  --fg: #1d2129;
+  --fg-soft: #4b5260;
+  --fg-mute: #7a8190;
+  --line: #e2e5ea;
+  --accent: #6a4fd8;
+  --accent-soft: #efebfd;
+  --mark: #ffe58a;
+  --code-bg: #f3f4f7;
+  --note: #2f6fdd; --tip: #1f8a4c; --important: #8250df; --warning: #b26a00; --caution: #cf2e2e;
+  --shadow: 0 8px 28px rgba(20, 24, 40, .14);
+  --header-h: 56px;
+  --sans: "Pretendard", "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Noto Sans KR", "Malgun Gothic", "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", "D2Coding", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c; --bg-soft: #1b1e24; --bg-sunk: #22262e; --fg: #e4e7ec; --fg-soft: #b5bcc8; --fg-mute: #868e9c;
+    --line: #2d323b; --accent: #a796ff; --accent-soft: #2a2545; --mark: #6b5a12; --code-bg: #1f232a;
+    --note: #6ea2ff; --tip: #4cc684; --important: #b59bff; --warning: #e0a03a; --caution: #ff6b6b;
+    --shadow: 0 8px 28px rgba(0, 0, 0, .5); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171c; --bg-soft: #1b1e24; --bg-sunk: #22262e; --fg: #e4e7ec; --fg-soft: #b5bcc8; --fg-mute: #868e9c;
+  --line: #2d323b; --accent: #a796ff; --accent-soft: #2a2545; --mark: #6b5a12; --code-bg: #1f232a;
+  --note: #6ea2ff; --tip: #4cc684; --important: #b59bff; --warning: #e0a03a; --caution: #ff6b6b;
+  --shadow: 0 8px 28px rgba(0, 0, 0, .5); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: calc(var(--header-h) + 16px); }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.75 var(--sans); -webkit-text-size-adjust: 100%; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+kbd { font: 12px var(--mono); padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--bg-soft); }
+
+/* header */
+.topbar { position: sticky; top: 0; z-index: 30; height: var(--header-h); display: flex; align-items: center; gap: 12px; padding: 0 16px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--fg); white-space: nowrap; }
+.brand img { width: 28px; height: 28px; }
+.brand:hover { text-decoration: none; }
+.iconbtn { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg-soft); cursor: pointer; flex: none; }
+.iconbtn:hover { background: var(--bg-soft); color: var(--fg); }
+.iconbtn svg { width: 18px; height: 18px; }
+#menuBtn { display: none; }
+.search { position: relative; flex: 1; max-width: 520px; margin-left: auto; }
+.search input { width: 100%; height: 38px; padding: 0 64px 0 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-soft); color: var(--fg); font: 15px var(--sans); outline: none; }
+.search input:focus { border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search > svg { position: absolute; left: 11px; top: 11px; width: 16px; height: 16px; color: var(--fg-mute); pointer-events: none; }
+.search input::-webkit-search-cancel-button { display: none; }
+.search input:not(:placeholder-shown) ~ .hint { display: none; }
+.search .hint { position: absolute; right: 10px; top: 9px; pointer-events: none; }
+.results { position: absolute; top: 46px; left: 0; right: 0; max-height: min(70vh, 640px); overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; }
+.results[hidden] { display: none; }
+.results .status { padding: 10px 12px; color: var(--fg-mute); font-size: 14px; }
+.result { display: block; padding: 9px 12px; border-radius: 8px; color: var(--fg); }
+.result:hover, .result.sel { background: var(--accent-soft); text-decoration: none; }
+.result .path { font-size: 12.5px; color: var(--fg-mute); }
+.result .head { font-weight: 600; }
+.result .snip { font-size: 13.5px; color: var(--fg-soft); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+mark { background: var(--mark); color: inherit; border-radius: 2px; }
+
+/* layout */
+.layout { display: grid; grid-template-columns: 280px minmax(0, 1fr) 232px; max-width: 1560px; margin: 0 auto; }
+.sidebar { position: sticky; top: var(--header-h); height: calc(100vh - var(--header-h)); overflow-y: auto; padding: 20px 12px 40px 16px; border-right: 1px solid var(--line); }
+.nav-group h2 { margin: 18px 8px 6px; font-size: 12px; letter-spacing: .04em; color: var(--fg-mute); font-weight: 700; }
+.nav-group:first-child h2 { margin-top: 0; }
+.nav-group ul { list-style: none; margin: 0; padding: 0; }
+.nav-group a { display: block; padding: 5px 10px; border-radius: 7px; color: var(--fg-soft); font-size: 14.5px; line-height: 1.45; }
+.nav-group a:hover { background: var(--bg-soft); color: var(--fg); text-decoration: none; }
+.nav-group a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.nav-home { display: block; padding: 6px 10px; margin-bottom: 12px; border-radius: 7px; color: var(--fg); font-weight: 600; font-size: 14.5px; }
+.nav-home:hover { background: var(--bg-soft); text-decoration: none; }
+.nav-home.active { background: var(--accent-soft); color: var(--accent); }
+main { min-width: 0; padding: 32px 48px 80px; }
+.toc { position: sticky; top: var(--header-h); height: calc(100vh - var(--header-h)); overflow-y: auto; padding: 28px 16px 40px 8px; font-size: 13.5px; }
+.toc h2 { font-size: 12px; color: var(--fg-mute); margin: 0 0 8px 10px; letter-spacing: .04em; }
+.toc ul { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+.toc a { display: block; padding: 3px 10px; margin-left: -1px; border-left: 2px solid transparent; color: var(--fg-mute); line-height: 1.45; }
+.toc a.l3 { padding-left: 22px; }
+.toc a:hover { color: var(--fg); text-decoration: none; }
+.toc a.on { color: var(--accent); border-left-color: var(--accent); }
+
+/* article */
+.doc { max-width: 860px; margin: 0 auto; }
+.doc[hidden] { display: none; }
+.crumb { font-size: 13px; color: var(--fg-mute); margin: 0 0 8px; }
+.crumb code { font-size: 12px; }
+.doc h1, .doc h2, .doc h3, .doc h4 { position: relative; line-height: 1.35; scroll-margin-top: calc(var(--header-h) + 16px); }
+.doc h1 { font-size: 2em; margin: 0 0 .6em; letter-spacing: -.01em; }
+.doc h2 { font-size: 1.45em; margin: 2.2em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+.doc h3 { font-size: 1.18em; margin: 1.8em 0 .5em; }
+.doc h4 { font-size: 1.02em; margin: 1.5em 0 .4em; }
+.hanchor { margin-left: .4em; color: var(--fg-mute); opacity: 0; font-weight: 400; }
+h1:hover .hanchor, h2:hover .hanchor, h3:hover .hanchor, h4:hover .hanchor { opacity: 1; }
+.hanchor:hover { text-decoration: none; color: var(--accent); }
+.doc p, .doc ul, .doc ol { margin: .7em 0; }
+.doc li { margin: .25em 0; }
+.doc li > p { margin: .3em 0; }
+.doc img { max-width: 100%; height: auto; border-radius: 6px; }
+.doc hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+.doc :not(pre) > code { font: .88em var(--mono); background: var(--code-bg); padding: .12em .38em; border-radius: 5px; overflow-wrap: anywhere; }
+.code { position: relative; margin: 1em 0; }
+.code pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; font: 13.5px/1.6 var(--mono); }
+.copy { position: absolute; top: 8px; right: 8px; padding: 2px 9px; font: 12px var(--sans); border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg-soft); cursor: pointer; opacity: 0; transition: opacity .15s; }
+.code:hover .copy, .copy:focus { opacity: 1; }
+pre.mermaid { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; font: 13px var(--mono); text-align: center; }
+.table-wrap { overflow-x: auto; margin: 1em 0; border: 1px solid var(--line); border-radius: 10px; }
+.doc table { border-collapse: collapse; width: 100%; font-size: 14.5px; line-height: 1.6; }
+.doc th, .doc td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+.doc th { background: var(--bg-soft); font-weight: 600; white-space: nowrap; }
+.doc tr:last-child td { border-bottom: 0; }
+.doc td + td, .doc th + th { border-left: 1px solid var(--line); }
+.doc blockquote { margin: 1em 0; padding: .6em 1em; border-left: 4px solid var(--line); background: var(--bg-soft); border-radius: 0 8px 8px 0; color: var(--fg-soft); }
+.doc blockquote > :first-child { margin-top: 0; } .doc blockquote > :last-child { margin-bottom: 0; }
+.callout { --c: var(--note); border-left-color: var(--c) !important; }
+.callout-title { font-weight: 700; color: var(--c); margin-bottom: .2em !important; }
+.callout-tip { --c: var(--tip); } .callout-important { --c: var(--important); } .callout-warning { --c: var(--warning); } .callout-caution { --c: var(--caution); }
+.doc details { border: 1px solid var(--line); border-radius: 10px; padding: .4em 1em; margin: 1em 0; }
+.doc summary { cursor: pointer; font-weight: 600; }
+.doc [align="center"] { text-align: center; }
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); }
+.pager a { display: block; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; color: var(--fg); }
+.pager a:hover { border-color: var(--accent); text-decoration: none; }
+.pager small { display: block; color: var(--fg-mute); font-size: 12.5px; }
+.pager .next { text-align: right; grid-column: 2; }
+
+/* landing */
+.hero { display: flex; gap: 20px; align-items: flex-start; padding: 8px 0 12px; }
+.hero img { flex: none; }
+.hero h1 { margin: 0 0 .3em; }
+.hero p { margin: .3em 0; color: var(--fg-soft); }
+.hero .meta { font-size: 13.5px; color: var(--fg-mute); }
+.group h2 { border: 0; margin: 1.8em 0 .6em; font-size: 1.15em; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.card { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg); transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--accent); text-decoration: none; transform: translateY(-1px); }
+.card strong { font-size: 15px; line-height: 1.4; }
+.card span { font-size: 13px; color: var(--fg-soft); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card small { margin-top: auto; padding-top: 4px; font: 11.5px var(--mono); color: var(--fg-mute); }
+
+.scrim { display: none; }
+@media (max-width: 1240px) {
+  .layout { grid-template-columns: 260px minmax(0, 1fr); }
+  .toc { display: none; }
+}
+@media (max-width: 860px) {
+  #menuBtn { display: inline-grid; }
+  .brand span { display: none; }
+  .search .hint { display: none; }
+  .search input { padding-right: 12px; }
+  .layout { display: block; }
+  .sidebar { position: fixed; z-index: 40; top: 0; left: 0; bottom: 0; height: 100vh; width: min(300px, 84vw); background: var(--bg); transform: translateX(-100%); transition: transform .2s; padding-top: 20px; }
+  body.nav-open .sidebar { transform: none; box-shadow: var(--shadow); }
+  body.nav-open .scrim { display: block; position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, .35); }
+  main { padding: 20px 16px 64px; }
+  .doc h1 { font-size: 1.65em; }
+  .hero img { width: 52px; height: 52px; }
+  .pager { grid-template-columns: 1fr; }
+  .pager .next { grid-column: 1; }
+}
+@media print {
+  .topbar, .sidebar, .toc, .pager, .copy, .hanchor { display: none !important; }
+  .layout { display: block; } main { padding: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <button class="iconbtn" id="menuBtn" type="button" aria-label="문서 목록 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <a class="brand" href="#index"><img src="branding/psd2live-icon-mesh.png" alt=""><span>PSD2Live 문서</span></a>
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="모든 문서 검색" autocomplete="off" spellcheck="false" aria-label="모든 문서 검색">
+    <span class="hint"><kbd>/</kbd></span>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <button class="iconbtn" id="themeBtn" type="button" aria-label="밝은 테마와 어두운 테마 전환"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+</header>
+<div class="scrim" id="scrim"></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar" aria-label="문서 목록">
+    <a class="nav-home" href="#index" data-doc="index">전체 문서 목록</a>
+    <!--NAV-->
+  </nav>
+  <main id="main">
+<!--ARTICLES-->
+  </main>
+  <aside class="toc" id="toc" aria-label="이 문서의 목차"></aside>
+</div>
+<script>
+(function () {
+  const META = /*META*/null;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+
+  /* theme */
+  const root = document.documentElement;
+  const saved = store.get('psd2live-docs-theme');
+  if (saved === 'light' || saved === 'dark') root.dataset.theme = saved;
+  $('#themeBtn').addEventListener('click', () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    store.set('psd2live-docs-theme', root.dataset.theme);
+  });
+
+  /* mobile nav */
+  const closeNav = () => document.body.classList.remove('nav-open');
+  $('#menuBtn').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+  $('#scrim').addEventListener('click', closeNav);
+
+  /* routing */
+  let current = null, spy = null;
+  function parseHash() {
+    let h = location.hash.slice(1);
+    try { h = decodeURIComponent(h); } catch (e) {}
+    if (!h) return { doc: 'index', target: null };
+    const doc = h.split('::')[0];
+    if (!META.titles[doc]) return { doc: 'index', target: null };
+    return { doc, target: h.includes('::') ? h : null };
+  }
+  function show() {
+    const { doc, target } = parseHash();
+    if (doc !== current) {
+      $$('#main > article').forEach(a => { a.hidden = a.id !== doc; });
+      $$('[data-doc]').forEach(a => a.classList.toggle('active', a.dataset.doc === doc));
+      const link = $(`.sidebar [data-doc="${CSS.escape(doc)}"]`);
+      if (link) link.scrollIntoView({ block: 'nearest' });
+      document.title = doc === 'index' ? 'PSD2Live 문서' : `${META.titles[doc]} · PSD2Live 문서`;
+      current = doc;
+      buildToc(doc);
+      addPager(doc);
+      renderMermaid(document.getElementById(doc));
+    }
+    closeNav();
+    const el = target && document.getElementById(target);
+    if (el) {
+      if (el.tagName === 'DETAILS') el.open = true;
+      el.scrollIntoView();
+    } else window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', show);
+
+  function buildToc(doc) {
+    const toc = $('#toc');
+    if (spy) spy.disconnect();
+    const hs = doc === 'index' ? [] : $$('h2, h3', document.getElementById(doc));
+    if (hs.length < 2) { toc.innerHTML = ''; return; }
+    const text = h => h.textContent.replace(/#$/, '').trim();
+    toc.innerHTML = '<h2>이 문서에서</h2><ul>' + hs.map(h => `<li><a class="l${h.tagName[1]}" href="#${encodeURIComponent(h.id)}" data-for="${h.id.replace(/"/g, '&quot;')}"></a></li>`).join('') + '</ul>';
+    $$('a', toc).forEach((a, i) => { a.textContent = text(hs[i]); });
+    const links = new Map($$('a', toc).map(a => [a.dataset.for, a]));
+    let active = null;
+    spy = new IntersectionObserver(entries => {
+      for (const e of entries) if (e.isIntersecting) {
+        if (active) active.classList.remove('on');
+        active = links.get(e.target.id);
+        if (active) { active.classList.add('on'); active.scrollIntoView({ block: 'nearest' }); }
+      }
+    }, { rootMargin: '-70px 0px -75% 0px' });
+    hs.forEach(h => spy.observe(h));
+  }
+
+  function addPager(doc) {
+    const art = document.getElementById(doc);
+    if (doc === 'index' || $('.pager', art)) return;
+    const i = META.order.indexOf(doc);
+    const prev = META.order[i - 1], next = META.order[i + 1];
+    const link = (id, cls, label) => id ? `<a class="${cls}" href="#${encodeURIComponent(id)}"><small>${label}</small></a>` : '';
+    const nav = document.createElement('nav');
+    nav.className = 'pager';
+    nav.innerHTML = link(prev, 'prev', '← 이전') + link(next, 'next', '다음 →');
+    $$('a', nav).forEach(a => {
+      const id = decodeURIComponent(a.getAttribute('href').slice(1));
+      a.append(document.createTextNode(META.titles[id]));
+    });
+    art.appendChild(nav);
+  }
+
+  let mermaidState = null;
+  function renderMermaid(art) {
+    const blocks = $$('pre.mermaid:not([data-processed])', art);
+    if (!blocks.length) return;
+    const run = () => window.mermaid && window.mermaid.run({ nodes: blocks }).catch(() => {});
+    if (mermaidState === 'ready') return run();
+    if (mermaidState === 'loading' || mermaidState === 'failed') return;
+    mermaidState = 'loading';
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js';
+    s.onload = () => {
+      const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      window.mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default' });
+      mermaidState = 'ready';
+      renderMermaid(document.getElementById(current));
+    };
+    s.onerror = () => { mermaidState = 'failed'; };
+    document.head.appendChild(s);
+  }
+
+  /* copy buttons */
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.copy');
+    if (!b) return;
+    const code = b.parentElement.querySelector('code').textContent;
+    const done = () => { b.textContent = '복사됨'; setTimeout(() => { b.textContent = '복사'; }, 1200); };
+    if (navigator.clipboard) navigator.clipboard.writeText(code).then(done, () => {});
+  });
+
+  /* search */
+  let index = null;
+  function buildIndex() {
+    index = [];
+    $$('#main > article:not(#index)').forEach(art => {
+      const doc = art.id, title = META.titles[doc];
+      let sec = { doc, id: doc, head: title, text: '' };
+      const push = () => { if (sec.text || sec.id !== doc) { sec.low = (sec.head + '\n' + sec.text).toLowerCase(); sec.headLow = sec.head.toLowerCase(); index.push(sec); } };
+      for (const el of art.children) {
+        if (/^H[1-6]$/.test(el.tagName)) {
+          push();
+          sec = { doc, id: el.id, head: el.textContent.replace(/#$/, '').trim(), text: '' };
+        } else if (!el.classList.contains('crumb') && !el.classList.contains('pager')) {
+          sec.text += ' ' + el.textContent.replace(/\s+/g, ' ');
+        }
+      }
+      push();
+    });
+  }
+  const escHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function highlight(s, terms) {
+    const re = new RegExp('(' + terms.map(escRe).join('|') + ')', 'gi');
+    return escHtml(s).replace(re, '<mark>$1</mark>');
+  }
+  const q = $('#q'), results = $('#results');
+  let sel = -1;
+  function search() {
+    const v = q.value.trim();
+    if (!v) { results.hidden = true; return; }
+    if (!index) buildIndex();
+    const terms = v.toLowerCase().split(/\s+/).filter(Boolean);
+    const hits = [];
+    for (const s of index) {
+      if (!terms.every(t => s.low.includes(t))) continue;
+      let score = 0;
+      for (const t of terms) {
+        if (s.headLow.includes(t)) score += 10;
+        if (META.titles[s.doc].toLowerCase().includes(t)) score += 4;
+        score += Math.min(5, s.low.split(t).length - 1) * 0.3;
+      }
+      if (s.id === s.doc) score += 2;
+      hits.push([score, s]);
+    }
+    hits.sort((a, b) => b[0] - a[0]);
+    const top = hits.slice(0, 60);
+    sel = top.length ? 0 : -1;
+    if (!top.length) { results.innerHTML = '<div class="status">검색 결과가 없습니다.</div>'; results.hidden = false; return; }
+    results.innerHTML = `<div class="status">${hits.length > 60 ? `상위 60개 / 전체 ${hits.length}개` : `${hits.length}개 결과`}</div>` + top.map(([, s], i) => {
+      const body = s.text.trim();
+      const lowBody = body.toLowerCase();
+      let at = -1;
+      for (const t of terms) { const k = lowBody.indexOf(t); if (k >= 0 && (at < 0 || k < at)) at = k; }
+      const start = Math.max(0, at - 40);
+      const snip = (start ? '…' : '') + body.slice(start, start + 180);
+      const path = s.id === s.doc ? META.titles[s.doc] : META.titles[s.doc];
+      const head = s.id === s.doc ? '' : s.head;
+      return `<a class="result${i === 0 ? ' sel' : ''}" href="#${encodeURIComponent(s.id)}"><div class="path">${escHtml(path)}</div>${head ? `<div class="head">${highlight(head, terms)}</div>` : ''}<div class="snip">${highlight(snip, terms)}</div></a>`;
+    }).join('');
+    results.hidden = false;
+  }
+  function move(d) {
+    const items = $$('.result', results);
+    if (!items.length) return;
+    if (items[sel]) items[sel].classList.remove('sel');
+    sel = (sel + d + items.length) % items.length;
+    items[sel].classList.add('sel');
+    items[sel].scrollIntoView({ block: 'nearest' });
+  }
+  let timer;
+  q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 120); });
+  q.addEventListener('focus', () => { if (q.value.trim()) search(); });
+  q.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+    else if (e.key === 'Enter') { const a = $$('.result', results)[sel]; if (a) { location.hash = a.getAttribute('href'); results.hidden = true; q.blur(); } }
+    else if (e.key === 'Escape') { results.hidden = true; q.blur(); }
+  });
+  results.addEventListener('click', e => { if (e.target.closest('.result')) { results.hidden = true; } });
+  document.addEventListener('click', e => { if (!e.target.closest('.search')) results.hidden = true; });
+  document.addEventListener('keydown', e => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if ((e.key === '/' && !typing) || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) { e.preventDefault(); q.focus(); q.select(); }
+  });
+
+  show();
+})();
+</script>
+</body>
+</html>

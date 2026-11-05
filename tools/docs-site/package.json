@@ -1,0 +1,7 @@
+{
+  "name": "psd2live-docs-site",
+  "private": true,
+  "description": "Builds docs/index.html (all Korean docs in one page) for GitHub Pages",
+  "scripts": { "build": "node build.js" },
+  "dependencies": { "marked": "12.0.2" }
+}
