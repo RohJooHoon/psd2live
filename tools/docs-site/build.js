@@ -11,11 +11,11 @@ const REPO = 'https://github.com/tsunehimatoi/psd2live';
 
 const GROUPS = [
   { title: '시작하기', docs: ['README', 'CHANGELOG', 'ROADMAP', 'STATUS'] },
-  { title: '사용 가이드', docs: ['guide/USER_GUIDE', 'guide/CANVAS_EDITOR', 'guide/LAYOUT', 'guide/DEPTH_SPLIT', 'guide/SKELETON', 'guide/SWING', 'guide/PHYSICS', 'guide/SIMULATION', 'guide/SIMULATION_TUTORIAL', 'guide/DEFORM_PATHS', 'guide/TEXTURE_UPSCALE'] },
+  { title: '사용 가이드', docs: ['guide/USER_GUIDE', 'guide/MODIFIERS', 'guide/CANVAS_EDITOR', 'guide/LAYOUT', 'guide/DEPTH_SPLIT', 'guide/SKELETON', 'guide/SWING', 'guide/PHYSICS', 'guide/SIMULATION', 'guide/SIMULATION_TUTORIAL', 'guide/DEFORM_PATHS', 'guide/TEXTURE_UPSCALE'] },
   { title: '빌드와 배포', docs: ['guide/DEVELOPMENT', 'guide/CUBISM_SDK_SETUP', 'guide/CUBISM_CI_RELEASE', 'guide/PSD_IMPORT_PERFORMANCE'] },
   { title: '형식과 참조', docs: ['spec/PSD_LAYER_SPEC', 'spec/DEFORMER_AND_PARAMETER_SPEC', 'spec/IMPLEMENTATION_COMPARISON', 'spec/PROJECT_FORMAT', 'spec/LAYOUT_MANIFEST', 'spec/EXPORT_TARGETS', 'spec/RUNTIME', 'spec/P2LRT_V2', 'spec/INTERIOR_SURFACE', 'spec/TEXTURE_STRUCTURE_MESH'] },
   { title: '에이전트 (MCP)', docs: ['agent/MCP_AUTHORING', 'agent/AGENT_DESIGN'] },
-  { title: '내부 구현', docs: ['spec/DOCUMENT_LAYER', 'spec/RIG_PRESETS', 'spec/RIG_TEMPLATES_FACE', 'spec/RIG_TEMPLATES_HAIR_BODY', 'spec/RIG_TEMPLATES_PHYSICS_MOTION', 'spec/RIG_TEMPLATES_STRUCTURE', 'spec/MATERIALIZED_RIG', 'spec/MATERIAL_LAYOUT_WORKSPACE', 'spec/LAYOUT_AI_ASSIST', 'spec/HEADLESS_HOST', 'spec/RUNTIME_EXPORT_ARCHITECTURE_AND_GAPS', 'spec/MESH_TOPOLOGY_AND_SPLIT', 'spec/PAINT_SYSTEM_ARCHITECTURE_AND_PRD', 'spec/CANVAS_RENDERER', 'spec/UI_INTERACTION_CONSISTENCY', 'spec/CONTEXT_MENU_REVIEW', 'spec/CONTEXT_MENU_AUDIT'] },
+  { title: '내부 구현', docs: ['spec/DOCUMENT_LAYER', 'spec/RIG_PRESETS', 'spec/RIG_MODIFIER_STACK', 'spec/RIG_TEMPLATES_FACE', 'spec/RIG_TEMPLATES_HAIR_BODY', 'spec/RIG_TEMPLATES_PHYSICS_MOTION', 'spec/RIG_TEMPLATES_STRUCTURE', 'spec/MATERIALIZED_RIG', 'spec/MATERIAL_LAYOUT_WORKSPACE', 'spec/LAYOUT_AI_ASSIST', 'spec/HEADLESS_HOST', 'spec/RUNTIME_EXPORT_ARCHITECTURE_AND_GAPS', 'spec/MESH_TOPOLOGY_AND_SPLIT', 'spec/PAINT_SYSTEM_ARCHITECTURE_AND_PRD', 'spec/CANVAS_RENDERER', 'spec/UI_INTERACTION_CONSISTENCY', 'spec/CONTEXT_MENU_REVIEW', 'spec/CONTEXT_MENU_AUDIT'] },
 ];
 
 // Every ko markdown file must be placed in a group.

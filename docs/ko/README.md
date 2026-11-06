@@ -218,7 +218,7 @@ PSD2Live는 Cubism Editor나 SDK 없이 동작하면서 Cubism 형식과의 호�
 2. 사용하는 호스트(Claude Code, Codex, 일반 JSON)에 맞는 명령이나 설정을 복사합니다. Stdio만 지원하는 호스트는 저장소 루트의 [`mcp_proxy.py`](../../mcp_proxy.py)를 사용합니다.
 3. 에이전트가 먼저 `workspace_overview`로 프로젝트 개요를, `workspace_inspect`로 개별 객체를 읽게 합니다. 도구로 나열되지 않은 작업은 `workspace_list_operations`로 찾아 `workspace_call`로 호출합니다.
 
-여러 편집은 `workspace_apply_edits`로 원자적으로 커밋하거나(모두 성공하거나 모두 적용되지 않음), `workspace_preview_edits`로 먼저 시험 실행할 수 있습니다. 인터페이스 설명과 호출 예시는 [MCP 사용법과 인터페이스](agent/MCP_AUTHORING.md)를 참고하세요.
+여러 편집은 `workspace_apply_edits`로 원자적으로 커밋하거나(모두 성공하거나 모두 적용되지 않음), `workspace_preview_edits`로 먼저 시험 실행할 수 있습니다. 인터페이스 설명과 호출 예시는 [MCP 사용법과 인터페이스](agent/MCP_AUTHORING.md)를 참고하세요. 명시적 스택이 있는 프로젝트는 [모디파이어 스택 가이드](guide/MODIFIERS.md)를 참고하세요. 현재 진입점과 아직 남은 부분을 설명합니다.
 
 > [!NOTE]
 > MCP 자체는 이미지를 생성하지 않으므로, 새 소재를 추가하려면 호스트에 이미지 생성 기능이 있어야 합니다. 도구를 호출할 수 있다고 복잡한 모델링 작업이 안정적으로 수행되는 것은 아니며, [실측 기록](STATUS.md)에 실제 작업의 성공과 실패 사례가 정리되어 있습니다.
