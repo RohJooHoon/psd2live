@@ -12,7 +12,7 @@ const REPO = 'https://github.com/tsunehimatoi/psd2live';
 // icon: shown in the document list ('ref' for formats/internals, 'agent' for MCP).
 const GROUPS = [
   { title: '시작하기', docs: ['README', 'CHANGELOG', 'ROADMAP', 'STATUS'] },
-  { title: '사용 가이드', docs: ['guide/USER_GUIDE', 'guide/MODIFIERS', 'guide/CANVAS_EDITOR', 'guide/LAYOUT', 'guide/DEPTH_SPLIT', 'guide/SKELETON', 'guide/SWING', 'guide/PHYSICS', 'guide/SIMULATION', 'guide/SIMULATION_TUTORIAL', 'guide/DEFORM_PATHS', 'guide/TEXTURE_UPSCALE'] },
+  { title: '사용 가이드', docs: ['guide/USER_GUIDE', 'guide/PRESETS_QUICKSTART', 'guide/MODIFIERS', 'guide/CANVAS_EDITOR', 'guide/LAYOUT', 'guide/DEPTH_SPLIT', 'guide/SKELETON', 'guide/SWING', 'guide/PHYSICS', 'guide/SIMULATION', 'guide/SIMULATION_TUTORIAL', 'guide/DEFORM_PATHS', 'guide/TEXTURE_UPSCALE'] },
   { title: '빌드와 배포', docs: ['guide/DEVELOPMENT', 'guide/CUBISM_SDK_SETUP', 'guide/CUBISM_CI_RELEASE', 'guide/PSD_IMPORT_PERFORMANCE'] },
   { title: '형식과 참조', icon: 'ref', docs: ['spec/PSD_LAYER_SPEC', 'spec/DEFORMER_AND_PARAMETER_SPEC', 'spec/IMPLEMENTATION_COMPARISON', 'spec/PROJECT_FORMAT', 'spec/LAYOUT_MANIFEST', 'spec/EXPORT_TARGETS', 'spec/RUNTIME', 'spec/P2LRT_V2', 'spec/INTERIOR_SURFACE', 'spec/TEXTURE_STRUCTURE_MESH'] },
   { title: '에이전트 (MCP)', icon: 'agent', docs: ['agent/MCP_AUTHORING', 'agent/AGENT_DESIGN'] },
