@@ -2349,7 +2349,12 @@ object RigBuilder {
 	 */
 	/** Whether [layer] is a part of the fitted mouth, whose closed and open parts hand over at [io.github.psd2live.algorithms.binding.MouthRig.SWAP]. */
 	private fun mouthSwap(context: RigContext, config: PipelineConfig, layer: ClassifiedLayer): Boolean =
-		context.fittedMouth(config)?.let { it.closedLine && it.covers(layer) } == true
+		context.fittedMouth(config)?.let { mouth ->
+			// Drawn shut, the lines are the closed mouth: nothing hands over to them, and a closed drawing beside them
+			// (a cap over the lines' middle) only shows while the mouth is shut.
+			val shutLines = mouth.rig?.fit?.layered?.closedDrawn == true
+			mouth.closedLine && mouth.covers(layer) && (!shutLines || layer.semantic.tag == SemanticTag.MOUTH_CLOSE)
+		} == true
 
 	private fun eyeSwap(context: RigContext, config: PipelineConfig, layer: ClassifiedLayer): Boolean {
 		val tag = layer.semantic.tag

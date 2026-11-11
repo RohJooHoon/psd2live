@@ -39,6 +39,13 @@ data class MouthSourceContext(val fit: MouthFit, val options: MouthOptions, val 
             out.floats(options.inside, options.reach, options.teethWiden, options.narrow)
             out.writeBoolean(lineWidth != null)
             lineWidth?.let { out.finite(it) }
+            // A mouth drawn shut carries its strokes last, so measurements of a mouth drawn open stay as they were.
+            fit.layered?.takeIf { it.closedDrawn }?.let { frame ->
+                for (stroke in listOf(frame.closedUpper65!!, frame.closedLower65!!)) {
+                    require(stroke.size == STATION_COORDINATES)
+                    stroke.forEach { out.finite(it) }
+                }
+            }
         }
         val resource = ModifierAlgorithmResource(bytes.toByteArray())
         return ModifierAlgorithmContext(buildJsonObject {
@@ -62,7 +69,7 @@ data class MouthSourceContext(val fit: MouthFit, val options: MouthOptions, val 
                 resource.digest == digest) { "Invalid or missing mouth measurements" }
             try {
                 return DataInputStream(resource.read().inputStream()).use { input ->
-                    val fit = MouthFit(input.finite(), input.finite(), input.finite(), input.finite(), input.finite(),
+                    var fit = MouthFit(input.finite(), input.finite(), input.finite(), input.finite(), input.finite(),
                         List(MouthFit.SAMPLES) { input.finite() }, List(MouthFit.SAMPLES) { input.finite() },
                         if (input.flag()) input.layered() else null)
                     require(fit.width > 0f && (fit.axisX != 0f || fit.axisY != 0f))
@@ -75,6 +82,12 @@ data class MouthSourceContext(val fit: MouthFit, val options: MouthOptions, val 
                         teethWiden = input.finite(), narrow = input.finite(),
                     )
                     val lineWidth = if (input.flag()) input.finite() else null
+                    val layered = fit.layered
+                    if (layered != null && input.available() > 0) {
+                        val upper = FloatArray(STATION_COORDINATES) { input.finite() }
+                        val lower = FloatArray(STATION_COORDINATES) { input.finite() }
+                        fit = fit.copy(layered = layered.withClosed(upper, lower))
+                    }
                     require(input.read() == -1) { "Trailing mouth measurements" }
                     MouthSourceContext(fit, options, lineWidth)
                 }

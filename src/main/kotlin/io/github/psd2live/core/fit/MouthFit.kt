@@ -63,8 +63,10 @@ object MouthFitting {
 			?: mouths.filter { it.semantic.role == null }.maxByOrNull { it.opaquePixels } ?: return Result(null, "no mouth", emptyList())
 		val own = mouths.filter { it === main || it.semantic.variant == main.semantic.variant && it.semantic.side == main.semantic.side &&
 			it.bounds.left < main.bounds.right && main.bounds.left < it.bounds.right && it.bounds.top < main.bounds.bottom && main.bounds.top < it.bounds.bottom }
-		val edges = own.filter { it.semantic.role in lines }.takeIf { drawn -> drawn.any { it.semantic.role == PartRole.UPPER_LINE } &&
-			drawn.any { it.semantic.role == PartRole.LOWER_LINE } } ?: own
+		val closed = closedStrokes(own, main, level, toRig)
+		// Drawn shut, the lines say nothing of how far the mouth opens: the inside drawn behind them does.
+		val edges = if (closed != null) listOf(main) else own.filter { it.semantic.role in lines }.takeIf { drawn ->
+			drawn.any { it.semantic.role == PartRole.UPPER_LINE } && drawn.any { it.semantic.role == PartRole.LOWER_LINE } } ?: own
 		val points = ArrayList<Pair<Float, Float>>()
 		val upperLine = ArrayList<Pair<Float, Float>>(); val lowerLine = ArrayList<Pair<Float, Float>>()
 		for (layer in edges) {
@@ -132,8 +134,99 @@ object MouthFitting {
 		val baseFit = frame.copy(upper = line(tops), lower = line(bottoms))
 		if (baseFit.opening < 0.12f) return Result(null, "the mouth is drawn closed", own)
 		if (baseFit.opening > 1.6f) return Result(null, "the mouth is taller than it is wide", own)
-		val layeredFrame = buildLayeredFrame(main, layers, level, toRig)
+		val layeredFrame = buildLayeredFrame(main, layers, level, toRig, opensFromInside = closed != null)
+			?.let { if (closed != null) it.withClosed(closed.first, closed.second) else it }
 		return Result(baseFit.copy(layered = layeredFrame), null, own)
+	}
+
+	/**
+	 * The upper and lower lip lines' strokes when the mouth is drawn shut - the two lines meeting in the closed mouth -
+	 * over an inside ([main], unclipped) drawn open behind them, as Live2D PSDs are usually drawn; null otherwise.
+	 */
+	private fun closedStrokes(
+		own: List<ClassifiedLayer>, main: ClassifiedLayer, level: Pair<Float, Float>, toRig: (Float, Float) -> Pair<Float, Float>,
+	): Pair<FloatArray, FloatArray>? {
+		if (main.semantic.role != null || main.source.clipped) return null
+		val upper = own.filter { it.semantic.role == PartRole.UPPER_LINE }.maxByOrNull { it.opaquePixels } ?: return null
+		val lower = own.filter { it.semantic.role == PartRole.LOWER_LINE }.maxByOrNull { it.opaquePixels } ?: return null
+		val uDense = MouthThreeLayerModel.DEFAULT.uDense
+		val up = darkStroke(upper, level, toRig, uDense) ?: return null
+		val lo = darkStroke(lower, level, toRig, uDense) ?: return null
+		val n = uDense.size; val last = (n - 1) * 2
+		val width = hypot(up[last] - up[0], up[last + 1] - up[1]).coerceAtLeast(1f)
+		// Shut: the strokes run together along the middle half of the mouth, measured across the head's level at each
+		// place along it (the strokes may differ in length, so their stations do not line up).
+		val (lx, ly) = level
+		fun along(s: FloatArray, i: Int) = s[i * 2] * lx + s[i * 2 + 1] * ly
+		fun across(s: FloatArray, i: Int) = -s[i * 2] * ly + s[i * 2 + 1] * lx
+		val loAlong = FloatArray(n) { along(lo, it) }; val loAcross = FloatArray(n) { across(lo, it) }
+		val apart = (n / 4..3 * n / 4).maxOf { i ->
+			val a = along(up, i)
+			val k = (1 until n).firstOrNull { loAlong[it] >= a } ?: (n - 1)
+			val t = ((a - loAlong[k - 1]) / (loAlong[k] - loAlong[k - 1]).coerceAtLeast(1e-4f)).coerceIn(0f, 1f)
+			abs(across(up, i) - (loAcross[k - 1] + (loAcross[k] - loAcross[k - 1]) * t))
+		}
+		if (apart > 0.08f * width) return null
+		// The inside must open well past the shut lines, or there is nothing to part to.
+		if (main.bounds.height < 0.2f * upper.bounds.width) return null
+		return up to lo
+	}
+
+	/**
+	 * The centre of [layer]'s dark stroke at [uDense] places from its one end to the other along the head's [level], in
+	 * the rig's space: only pixels well darker than the layer's own light colour count, so a thin lip line drawn on a
+	 * band of skin (a lip line with the skin about it, as hand riggers draw them) is read as the line, not the band.
+	 */
+	private fun darkStroke(
+		layer: ClassifiedLayer, level: Pair<Float, Float>, toRig: (Float, Float) -> Pair<Float, Float>, uDense: FloatArray,
+	): FloatArray? {
+		val raster = layer.source.raster; val bounds = layer.source.bounds
+		val rw = raster.width; val rh = raster.height
+		if (rw <= 0 || rh <= 0) return null
+		val sx = bounds.width / rw.toFloat(); val sy = bounds.height / rh.toFloat()
+		fun lum(i: Int) = (0.2126f * (raster.rgba[i].toInt() and 0xff) + 0.7152f * (raster.rgba[i + 1].toInt() and 0xff) +
+			0.0722f * (raster.rgba[i + 2].toInt() and 0xff)) / 255f
+		val lums = ArrayList<Float>()
+		for (p in 0 until rw * rh) if ((raster.rgba[p * 4 + 3].toInt() and 0xff) >= 128) lums += lum(p * 4)
+		if (lums.size < 8) return null
+		lums.sort()
+		val light = lums[(lums.size * 0.85f).toInt().coerceAtMost(lums.size - 1)]
+		val dark = lums[(lums.size * 0.02f).toInt()]
+		if (light - dark < 0.15f) return null
+		val cutoff = dark + 0.5f * (light - dark)
+		val (lx, ly) = level
+		val alongs = ArrayList<Float>(); val acrosses = ArrayList<Float>()
+		for (y in 0 until rh) for (x in 0 until rw) {
+			val i = (y * rw + x) * 4
+			if ((raster.rgba[i + 3].toInt() and 0xff) < 128 || lum(i) > cutoff) continue
+			val (px, py) = toRig(bounds.left + (x + 0.5f) * sx, bounds.top + (y + 0.5f) * sy)
+			alongs += px * lx + py * ly; acrosses += -px * ly + py * lx
+		}
+		if (alongs.size < 8) return null
+		val lo = alongs.min(); val hi = alongs.max()
+		if (hi - lo < 4f) return null
+		val n = uDense.size
+		val half = max(1f, 1.5f * (hi - lo) / n)
+		val centre = FloatArray(n) { Float.NaN }
+		for (k in 0 until n) {
+			val at = lo + uDense[k] * (hi - lo)
+			var sum = 0f; var count = 0
+			for (j in alongs.indices) if (abs(alongs[j] - at) <= half) { sum += acrosses[j]; count++ }
+			if (count > 0) centre[k] = sum / count
+		}
+		val known = centre.indices.filter { !centre[it].isNaN() }
+		if (known.isEmpty()) return null
+		for (k in 0 until n) if (centre[k].isNaN()) {
+			val a = known.lastOrNull { it < k }; val b = known.firstOrNull { it > k }
+			centre[k] = when {
+				a != null && b != null -> centre[a] + (centre[b] - centre[a]) * (k - a) / (b - a).toFloat()
+				else -> centre[a ?: b!!]
+			}
+		}
+		return FloatArray(n * 2) { i ->
+			val k = i / 2; val a = lo + uDense[k] * (hi - lo); val c = centre[k]
+			if (i % 2 == 0) a * lx - c * ly else a * ly + c * lx
+		}
 	}
 
 	private fun buildLayeredFrame(
@@ -141,6 +234,7 @@ object MouthFitting {
 		allLayers: List<ClassifiedLayer>,
 		level: Pair<Float, Float>,
 		toRig: (Float, Float) -> Pair<Float, Float>,
+		opensFromInside: Boolean = false,
 	): LayeredMouthFrame? {
 		val related = allLayers.filter {
 			it.opaquePixels > 0 &&
@@ -167,8 +261,10 @@ object MouthFitting {
 		if (hasLines) {
 			val upStroke = extractMedialStroke(upperLineLayer!!, level, toRig, uDense) ?: return null
 			val loStroke = extractMedialStroke(lowerLineLayer!!, level, toRig, uDense) ?: return null
-			upperWorld65 = upStroke.first
-			lowerWorld65 = loStroke.first
+			// Lines drawn shut part to the inside's rims: those are the open key, the strokes stay where they rest.
+			val rims = if (opensFromInside) extractOpeningRims(main, level, toRig, uDense) ?: return null else null
+			upperWorld65 = rims?.first ?: upStroke.first
+			lowerWorld65 = rims?.second ?: loStroke.first
 			linePx = 0.5f * (upStroke.second + loStroke.second)
 		} else {
 			val rims = extractOpeningRims(main, level, toRig, uDense) ?: return null

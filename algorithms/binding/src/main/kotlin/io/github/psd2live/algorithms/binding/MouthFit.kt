@@ -25,7 +25,22 @@ class LayeredMouthFrame(
 	val hUtVis0: Float,
 	val utSideReserve: Float,
 	val hLtVis0: Float,
+	/**
+	 * The lip lines' strokes as drawn, when the mouth is drawn shut over an inside drawn open (the usual Live2D PSD:
+	 * upper and lower lip lines meeting in the closed mouth, the opening, teeth and tongue drawn larger behind them).
+	 * Then [upperWorld65] and [lowerWorld65] are the opening's rims, the open key the lips part to, and these are where
+	 * the lines sit at rest and where they meet again when shut. Null for a mouth drawn open.
+	 */
+	val closedUpper65: FloatArray? = null,
+	val closedLower65: FloatArray? = null,
 ) {
+	val closedDrawn: Boolean get() = closedUpper65 != null && closedLower65 != null
+
+	/** This frame with the closed strokes [upper] and [lower]. */
+	fun withClosed(upper: FloatArray?, lower: FloatArray?) = LayeredMouthFrame(hasLines, centerX, centerY, exX, exY, frameWidth,
+		upperWorld65, lowerWorld65, upperLocal65, lowerLocal65, lineNorm, openColsX, openTopY, openBotY,
+		upperLipBoundsLocal, lowerLipBoundsLocal, tongueBoundsLocal, hUtVis0, utSideReserve, hLtVis0, upper, lower)
+
 	val eyX: Float get() = -exY
 	val eyY: Float get() = exX
 
@@ -61,7 +76,9 @@ class LayeredMouthFrame(
 			tongueBoundsLocal == other.tongueBoundsLocal &&
 			hUtVis0 == other.hUtVis0 &&
 			utSideReserve == other.utSideReserve &&
-			hLtVis0 == other.hLtVis0
+			hLtVis0 == other.hLtVis0 &&
+			closedUpper65.contentEquals(other.closedUpper65) &&
+			closedLower65.contentEquals(other.closedLower65)
 	}
 
 	override fun hashCode(): Int {
@@ -75,6 +92,8 @@ class LayeredMouthFrame(
 		h = 31 * h + hUtVis0.hashCode()
 		h = 31 * h + utSideReserve.hashCode()
 		h = 31 * h + hLtVis0.hashCode()
+		h = 31 * h + closedUpper65.contentHashCode()
+		h = 31 * h + closedLower65.contentHashCode()
 		return h
 	}
 }

@@ -155,6 +155,11 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 		val u0MouthV: FloatArray,
 		val l0MouthU: FloatArray,
 		val l0MouthV: FloatArray,
+		/** Where lines drawn shut rest, and their tangents ([LayeredMouthFrame.closedUpper65]); null for lines drawn open. */
+		val strokeU0World: FloatArray? = null,
+		val strokeL0World: FloatArray? = null,
+		val strokeTU0: FloatArray? = null,
+		val strokeTL0: FloatArray? = null,
 	) {
 		val eyX: Float get() = -exY
 		val eyY: Float get() = exX
@@ -178,7 +183,19 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 	private val target: TargetGeom = buildTargetGeom()
 
 	// A whole mouth has no authored closed lip line. Its open contour's midpoint is not a closed-mouth drawing.
-	private val closedMidlineLocal: FloatArray? = if (target.isLayeredArt) null else FloatArray(stations) { i ->
+	// Lines drawn shut are one: the lips meet where they are drawn, read across at each station of the open rims.
+	private val closedMidlineLocal: FloatArray? = fit.layered?.takeIf { it.closedDrawn }?.let { lf ->
+		val cu = lf.closedUpper65!!; val cl = lf.closedLower65!!
+		val xs = FloatArray(stations); val ys = FloatArray(stations)
+		for (i in 0 until stations) {
+			val (x, y) = lf.toLocalPx(0.5f * (cu[i * 2] + cl[i * 2]), 0.5f * (cu[i * 2 + 1] + cl[i * 2 + 1]))
+			xs[i] = x; ys[i] = y
+		}
+		FloatArray(stations) { i ->
+			val restX = 0.5f * (target.u0LocPx[i * 2] + target.l0LocPx[i * 2])
+			interp1D(restX, xs, ys) / target.widthPx
+		}
+	} ?: if (target.isLayeredArt) null else FloatArray(stations) { i ->
 		MouthCurve.preset("smile").yAt(uDense[i]) * fit.opening * 0.6f * fit.width / target.widthPx
 	}
 
@@ -249,6 +266,10 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 				u0MouthV = u0MV,
 				l0MouthU = l0MU,
 				l0MouthV = l0MV,
+				strokeU0World = lf.closedUpper65,
+				strokeL0World = lf.closedLower65,
+				strokeTU0 = lf.closedUpper65?.let { MouthThreeLayerModel.computeFrenet(it, stations).first },
+				strokeTL0 = lf.closedLower65?.let { MouthThreeLayerModel.computeFrenet(it, stations).first },
 			)
 		}
 
@@ -769,7 +790,10 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 	/** Where a point at ([u], [v]) of a layer that follows the lips as [follow] goes in [pose], as a change in the frame. */
 	fun moveAs(follow: Follow, u: Float, v: Float, pose: Pose): Pair<Float, Float> = moveAsInternal(follow, u, v, pose, chin = 0.6f)
 
-	private fun moveAsInternal(follow: Follow, u: Float, v: Float, pose: Pose, chin: Float, teethDepthVal: Float = 0f): Pair<Float, Float> = if (pose == Pose(open = 1f)) 0f to 0f else when (follow) {
+	private fun moveAsInternal(follow: Follow, u: Float, v: Float, pose: Pose, chin: Float, teethDepthVal: Float = 0f): Pair<Float, Float> =
+		// The open key is the drawing - except for lines drawn shut, which rest at the closed key and part to it.
+		if (pose == Pose(open = 1f) && !(target.strokeU0World != null && (follow == Follow.UPPER_LINE || follow == Follow.LOWER_LINE))) 0f to 0f
+		else when (follow) {
 		Follow.WHOLE -> move(u, v, pose)
 		Follow.WHOLE_TIGHT -> move(u, v, pose, tight = true)
 		Follow.OPENING -> openingMove(u, v, pose)
@@ -788,9 +812,10 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 	}
 
 	private fun strokeRaw(upper: Boolean, xRig: Float, yRig: Float, ep: EvaluatedPose): Triple<Float, Float, Float> {
-		val c0 = if (upper) target.u0World else target.l0World
+		// Lines drawn shut are measured from where they rest, not from the open rims they part to.
+		val c0 = (if (upper) target.strokeU0World else target.strokeL0World) ?: if (upper) target.u0World else target.l0World
 		val c1 = if (upper) ep.u1World else ep.l1World
-		val t0 = if (upper) target.tU0 else target.tL0
+		val t0 = (if (upper) target.strokeTU0 else target.strokeTL0) ?: if (upper) target.tU0 else target.tL0
 		val n0 = if (upper) target.nU0 else target.nL0
 		val t1 = if (upper) ep.tU1 else ep.tL1
 		val n1 = if (upper) ep.nU1 else ep.nL1
