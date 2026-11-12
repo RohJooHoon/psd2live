@@ -304,8 +304,8 @@ object MouthInsideSynthesis {
 	}
 
 	/**
-	 * A mouth kit: the inside, teeth and tongue of a mouth drawn shut over them (`mouth inside`, `upper teeth`,
-	 * `lower teeth`, `tongue`, ..., with the `upper lip line` and `lower lip line` they were drawn behind), read from
+	 * A mouth kit: the inside, teeth and tongue of an open mouth (`mouth inside`, `upper teeth`, `lower teeth`,
+	 * `tongue`, ..., optionally with the shut `upper lip line` and `lower lip line` they were drawn behind), read from
 	 * the PSD at `PSD2LIVE_MOUTH_KIT` or `~/.psd2live/mouth-kit.psd`. [fit] scales its parts to another shut mouth by the
 	 * corners of the two mouths' shut lines and bends them along that mouth's line, so the kit's open proportions,
 	 * teeth and tongue come with it.
@@ -376,6 +376,8 @@ object MouthInsideSynthesis {
 
 		companion object {
 			private const val ROUND_SAMPLES = 65
+			/** The share of a kit inside's columns at either end read for where its corners are, without lip lines. */
+			private const val CORNER_COLUMNS = 0.03f
 			@Volatile private var cached: Pair<String, MouthKit?>? = null
 
 			/** The kit at `PSD2LIVE_MOUTH_KIT` or `~/.psd2live/mouth-kit.psd`, read once per file version; null when there is none. */
@@ -397,10 +399,9 @@ object MouthInsideSynthesis {
 					val semantic = LayerClassifier.classify(layer.name)
 					Triple(layer, semantic.tag, PartRoles.fromName(layer.name, layer.groupPath, semantic.tag))
 				}
-				val upper = named.firstOrNull { it.third == PartRole.UPPER_LINE }?.first ?: return null
-				val lower = named.firstOrNull { it.third == PartRole.LOWER_LINE }?.first ?: return null
-				val up = stroke(upper) ?: return null
-				val lo = stroke(lower) ?: return null
+				// Lip lines in a kit are optional: only where the lips meet is read from them.
+				val up = named.firstOrNull { it.third == PartRole.UPPER_LINE }?.first?.let(::stroke)
+				val lo = named.firstOrNull { it.third == PartRole.LOWER_LINE }?.first?.let(::stroke)
 				val inside = named.filter { (layer, tag, role) -> tag in MOUTHS && role == null && opaque(layer) }.maxByOrNull { area(it.first) }?.first
 					?: return null
 				// The kit's corners are its inside's ends, not its lines' (a line may stop short of the mouth's corner, its
@@ -422,7 +423,19 @@ object MouthInsideSynthesis {
 							else -> if (layer.name.contains("line", ignoreCase = true)) "tongue line (kit)" else "tongue (kit)"
 						}
 					}
-				val kitMid = chord(left, width) { x -> 0.5f * (at(up, x) + at(lo, x)) }
+				// Where the lips meet: through the lines' ends when the kit has them, else through the inside's own corners -
+				// the middle of its paint in the columns at either end.
+				val kitMid = if (up != null && lo != null) chord(left, width) { x -> 0.5f * (at(up, x) + at(lo, x)) } else {
+					val sy = ib.height / ir.height.toFloat()
+					fun cornerY(cols: List<Int>): Float {
+						val ys = cols.flatMap { x -> (0 until ir.height).filter { y -> alpha(ir, y * ir.width + x) >= 128 } }
+						return ib.top + (ys.average().toFloat() + 0.5f) * sy
+					}
+					val reach = max(1, (columns.size * CORNER_COLUMNS).toInt())
+					val a = cornerY(columns.take(reach)); val b = cornerY(columns.takeLast(reach))
+					val between: (Float) -> Float = { x -> a + (b - a) * (x - left) / width }
+					between
+				}
 				val above = FloatArray(ROUND_SAMPLES); val below = FloatArray(ROUND_SAMPLES)
 				for (k in 0 until ROUND_SAMPLES) {
 					val x = left + width * k / (ROUND_SAMPLES - 1f)
