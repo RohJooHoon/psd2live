@@ -36,7 +36,21 @@ echo "==> JDK: $("$JDK/bin/java" -version 2>&1 | head -1)"
 ARGS=()
 if [[ $# -gt 0 ]]; then ARGS=(--args="$*"); fi
 
-# 입을 선 한 장으로만 그린 PSD를 위·아래 입술선으로 나누고, 입 키트(~/.psd2live/mouth-kit.psd)가 있으면 입 안쪽에 씁니다.
+# 입 키트: iCloud Drive의 psd2live/mouth-kit.psd (개인 자료라 저장소에는 넣지 않습니다).
+# 다른 키트를 쓰려면: PSD2LIVE_MOUTH_KIT=/경로/키트.psd ./start.command
+ICLOUD_KIT="$HOME/Library/Mobile Documents/com~apple~CloudDocs/psd2live/mouth-kit.psd"
+if [[ -z "${PSD2LIVE_MOUTH_KIT:-}" ]]; then
+	# 저장 공간 최적화로 내려받지 않은 상태면 먼저 받아 둡니다.
+	if [[ ! -f "$ICLOUD_KIT" && -f "$(dirname "$ICLOUD_KIT")/.mouth-kit.psd.icloud" ]]; then
+		echo "==> iCloud에서 입 키트를 받는 중..."
+		brctl download "$ICLOUD_KIT" 2>/dev/null || true
+		for _ in $(seq 1 30); do [[ -f "$ICLOUD_KIT" ]] && break; sleep 1; done
+	fi
+	if [[ -f "$ICLOUD_KIT" ]]; then export PSD2LIVE_MOUTH_KIT="$ICLOUD_KIT"; else echo "==> 입 키트 없음: 기본 입 안쪽을 그립니다 ($ICLOUD_KIT)"; fi
+fi
+[[ -n "${PSD2LIVE_MOUTH_KIT:-}" ]] && echo "==> 입 키트: $PSD2LIVE_MOUTH_KIT"
+
+# 입을 선 한 장으로만 그린 PSD를 위·아래 입술선으로 나누고, 입 키트가 있으면 입 안쪽에 씁니다.
 # 끄려면: PSD2LIVE_MOUTH_SYNTHESIS=0 ./start.command
 export PSD2LIVE_MOUTH_SYNTHESIS="${PSD2LIVE_MOUTH_SYNTHESIS:-1}"
 # 입이 조금 벌어졌을 때 입 안(혀·어두운 부분)을 어둡게 하는 처리를 끕니다. 켜려면: PSD2LIVE_MOUTH_SHADING=1 ./start.command
