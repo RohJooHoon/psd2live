@@ -45,6 +45,9 @@ object MouthInsideSynthesis {
 	/** How far past each end of a split line its lip's skin reaches, in the line's widths. */
 	private const val SKIN_SIDE = 0.15f
 
+	/** Over how many pixels a lip line's skin fades out across its line's middle, toward the opening. */
+	private const val SKIN_EDGE = 2f
+
 	/** The share of its full height a split line's lip skin keeps at the line's ends, fading out past them. */
 	private const val SKIN_END = 0.5f
 
@@ -94,9 +97,29 @@ object MouthInsideSynthesis {
 		val layers = art.layers.flatMap { layer ->
 			val stroke = split[layer] ?: return@flatMap listOf(layer)
 			listOf(stroke, Skin(LayerId("${layer.id.raw}::lip-skin"), "${layer.name} (skin)", layer.groupPath, layer.order,
-				layer.bounds, layer.raster))
+				layer.bounds, outerSkin(layer, if (layer === upper) up else lo, above = layer === upper)))
 		}
 		return object : SourceArt by art { override val layers: List<SourceLayer> = layers }
+	}
+
+	/**
+	 * [layer]'s skin on the outer side of its line only - above an upper line, below a lower one, and held level past the
+	 * line's ends ([at]). Skin drawn on the inner side (a lump at a lower line's end rising over the corner, as a hand rig
+	 * uses to round the mouth's corners) would lie over the opening as the lips part and cut its corners off.
+	 */
+	private fun outerSkin(layer: SourceLayer, centre: List<P>, above: Boolean): LayerRaster {
+		val raster = layer.raster; val b = layer.bounds
+		val w = raster.width; val h = raster.height
+		val sx = b.width / w.toFloat(); val sy = b.height / h.toFloat()
+		val rgba = raster.rgba.copyOf()
+		for (y in 0 until h) for (x in 0 until w) {
+			val cx = b.left + (x + 0.5f) * sx; val cy = b.top + (y + 0.5f) * sy
+			val outward = if (above) at(centre, cx) - cy else cy - at(centre, cx)  // how far out from the line's middle
+			val keep = (outward / SKIN_EDGE + 1f).coerceIn(0f, 1f)
+			val i = (y * w + x) * 4 + 3
+			rgba[i] = ((rgba[i].toInt() and 0xff) * keep).toInt().toByte()
+		}
+		return LayerRaster(w, h, rgba)
 	}
 
 	/**
