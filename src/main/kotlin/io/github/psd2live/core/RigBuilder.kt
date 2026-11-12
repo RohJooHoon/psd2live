@@ -1300,6 +1300,8 @@ object RigBuilder {
         }
         // A highlight or shadow lying inside the opening is in the mouth too, and so is what is clipped onto it: the inside's base.
         fun inMouth(layer: ClassifiedLayer) = layer.semantic.tag in CharacterAnalyzer.MOUTH_COMPONENT_TAGS ||
+            // A lip line's skin covers the opening as the lips part, and shows nowhere else.
+            layer.source is io.github.psd2live.core.fit.MouthInsideSynthesis.LipSkin ||
             fittedMouth != null && layer.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) && (layer.semantic.role != null || layer.source.clipped) && fittedMouth.covers(layer) &&
             fittedMouth.follow(layer).let { it == io.github.psd2live.algorithms.binding.MouthRig.Follow.DEEP || it == io.github.psd2live.algorithms.binding.MouthRig.Follow.INSIDE ||
                 it == io.github.psd2live.algorithms.binding.MouthRig.Follow.OPENING }

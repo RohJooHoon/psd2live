@@ -58,7 +58,9 @@ object MouthFitting {
 	fun fit(layers: List<ClassifiedLayer>, level: Pair<Float, Float>, toRig: (Float, Float) -> Pair<Float, Float>): Result {
 		val lines = setOf(PartRole.UPPER_LINE, PartRole.LOWER_LINE)
 		val mouths = layers.filter { it.opaquePixels > 0 && !it.source.clipped && (it.semantic.role == null || it.semantic.role in lines) &&
-			it.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) && !io.github.psd2live.core.MouthLipLayer.isLipId(it.source.id.raw) }
+			it.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) && !io.github.psd2live.core.MouthLipLayer.isLipId(it.source.id.raw) &&
+			// A lip line's skin split from it is not where the line is.
+			it.source !is MouthInsideSynthesis.LipSkin }
 		val main = mouths.filter { it.semantic.tag == SemanticTag.MOUTH && it.semantic.role == null }.maxByOrNull { it.opaquePixels }
 			?: mouths.filter { it.semantic.role == null }.maxByOrNull { it.opaquePixels } ?: return Result(null, "no mouth", emptyList())
 		val own = mouths.filter { it === main || it.semantic.variant == main.semantic.variant && it.semantic.side == main.semantic.side &&
@@ -228,8 +230,8 @@ object MouthFitting {
 		lums.sort()
 		val light = lums[(lums.size * 0.85f).toInt().coerceAtMost(lums.size - 1)]
 		val dark = lums[(lums.size * 0.02f).toInt()]
-		if (light - dark < 0.15f) return null
-		val cutoff = dark + 0.5f * (light - dark)
+		// All of one colour, the layer is all line.
+		val cutoff = if (light - dark < 0.15f) Float.MAX_VALUE else dark + 0.5f * (light - dark)
 		val (lx, ly) = level
 		val alongs = ArrayList<Float>(); val acrosses = ArrayList<Float>()
 		for (y in 0 until rh) for (x in 0 until rw) {

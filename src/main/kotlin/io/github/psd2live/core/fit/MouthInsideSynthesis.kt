@@ -48,11 +48,75 @@ object MouthInsideSynthesis {
 	/** The upper lip's share of a split line's weight: a little more than half, as drawn open mouths often are. */
 	private const val UPPER_SHARE = 0.6f
 
+	/** How dark a lip line layer's pixel is, from its skin (0) to its line (1), where it counts as skin and as line. */
+	private const val SKIN_DARKNESS = 0.15f
+	private const val LINE_DARKNESS = 0.55f
+
+	/** The least share of a lip line layer as light as its skin for it to have a band of skin about the line. */
+	private const val SKIN_SHARE = 0.3f
+
 	/**
 	 * [art] with a generated mouth inside when its mouth is drawn shut over nothing - first splitting a mouth drawn as one
 	 * shut line into upper and lower lip lines with skin about them ([splitLine]); [art] itself otherwise.
 	 */
-	fun augment(art: SourceArt): SourceArt = addInside(if (enabled) splitLine(art) else art)
+	fun augment(art: SourceArt): SourceArt = addInside(if (enabled) splitLine(art) else art).let { if (enabled) splitSkin(it) else it }
+
+	/**
+	 * Lip lines drawn shut on a band of skin (the usual Live2D lip line: the line, and skin about it to cover the
+	 * inside as the lips part) are split in two: the line alone, and the whole layer behind it as the lip's skin
+	 * ([LipSkin]), clipped to the mouth's inside. The skin then shows only where it covers the opening - the lips'
+	 * thickness as the mouth opens - and never over the face, where it would show as a patch wherever the face is not
+	 * the plain skin it was painted in (a blush, a shadow) once the mouth moves.
+	 */
+	private fun splitSkin(art: SourceArt): SourceArt {
+		val named = art.layers.map { layer ->
+			val semantic = LayerClassifier.classify(layer.name)
+			Triple(layer, semantic.tag, PartRoles.fromName(layer.name, layer.groupPath, semantic.tag))
+		}
+		// Only over an inside: the skin is clipped to it.
+		if (named.none { (layer, tag, role) -> tag in MOUTHS && role == null && !layer.clipped && opaque(layer) }) return art
+		val upper = named.filter { it.second in MOUTHS && it.third == PartRole.UPPER_LINE }.maxByOrNull { area(it.first) }?.first ?: return art
+		val lower = named.filter { it.second in MOUTHS && it.third == PartRole.LOWER_LINE }.maxByOrNull { area(it.first) }?.first ?: return art
+		val up = stroke(upper) ?: return art
+		val lo = stroke(lower) ?: return art
+		val left = min(up.first().x, lo.first().x); val width = max(up.last().x, lo.last().x) - left
+		if (width < 8f) return art
+		val apart = (0..40).maxOf { k -> val x = left + width * (0.25f + 0.5f * k / 40f); abs(at(up, x) - at(lo, x)) }
+		if (apart > 0.12f * width) return art
+		val split = listOf(upper, lower).mapNotNull { line -> lineOnly(line)?.let { line to it } }.toMap()
+		if (split.isEmpty()) return art
+		val layers = art.layers.flatMap { layer ->
+			val stroke = split[layer] ?: return@flatMap listOf(layer)
+			listOf(stroke, Skin(LayerId("${layer.id.raw}::lip-skin"), "${layer.name} (skin)", layer.groupPath, layer.order,
+				layer.bounds, layer.raster))
+		}
+		return object : SourceArt by art { override val layers: List<SourceLayer> = layers }
+	}
+
+	/**
+	 * [line] with only its line: each pixel kept by how much darker it is than the layer's light colour (the skin it is
+	 * drawn on), fading out over the line's soft edge. Null when the layer is all line, with no skin about it.
+	 */
+	private fun lineOnly(line: SourceLayer): SourceLayer? {
+		val raster = line.raster; val n = raster.width * raster.height
+		val lums = (0 until n).filter { alpha(raster, it) >= 128 }.map { lum(raster, it) }.sorted()
+		if (lums.size < 8) return null
+		val light = lums[(lums.size * 0.85f).toInt().coerceAtMost(lums.size - 1)]; val dark = lums[(lums.size * 0.02f).toInt()]
+		if (light - dark < 0.15f) return null
+		fun darkness(p: Int) = ((light - lum(raster, p)) / (light - dark)).coerceIn(0f, 1f)
+		// A band of skin: much of the layer is as light as its light colour.
+		if (lums.count { (light - it) / (light - dark) < SKIN_DARKNESS } < SKIN_SHARE * lums.size) return null
+		val rgba = raster.rgba.copyOf()
+		for (p in 0 until n) {
+			val t = ((darkness(p) - SKIN_DARKNESS) / (LINE_DARKNESS - SKIN_DARKNESS)).coerceIn(0f, 1f)
+			val keep = t * t * (3f - 2f * t)
+			rgba[p * 4 + 3] = ((rgba[p * 4 + 3].toInt() and 0xff) * keep).toInt().toByte()
+		}
+		val only = LayerRaster(raster.width, raster.height, rgba)
+		// A line this synthesis drew stays meshed as a strip.
+		return if (line is Synthesized) object : Synthesized by line { override val raster: LayerRaster = only }
+			else object : SourceLayer by line { override val raster: LayerRaster = only }
+	}
 
 	/**
 	 * Splitting a single shut line and fitting a mouth kit change what a PSD generates, so they are opt in for now:
@@ -395,8 +459,8 @@ object MouthInsideSynthesis {
 		if (lums.size < 8) return null
 		lums.sort()
 		val light = lums[(lums.size * 0.85f).toInt().coerceAtMost(lums.size - 1)]; val dark = lums[(lums.size * 0.02f).toInt()]
-		if (light - dark < 0.15f) return null
-		val cutoff = dark + 0.5f * (light - dark)
+		// All of one colour, the layer is all line.
+		val cutoff = if (light - dark < 0.15f) Float.MAX_VALUE else dark + 0.5f * (light - dark)
 		val out = ArrayList<P>()
 		for (x in 0 until w) {
 			var sum = 0f; var n = 0
@@ -484,6 +548,18 @@ object MouthInsideSynthesis {
 
 	/** A layer this synthesis drew: meshed as a strip along the mouth ([stripMesh]) rather than traced round. */
 	interface Synthesized : SourceLayer
+
+	/** A lip line's skin, split from its line ([splitSkin]): it moves with the line and is clipped to the mouth's inside. */
+	interface LipSkin : Synthesized
+
+	private class Skin(
+		override val id: LayerId, override val name: String, override val groupPath: String, override val order: Int,
+		override val bounds: LayerBounds, override val raster: LayerRaster,
+	) : LipSkin {
+		override val opacity: Float get() = 1f
+		override val clipped: Boolean get() = false
+		override val blend: LayerBlend get() = LayerBlend.Normal
+	}
 
 	/**
 	 * [layer]'s mesh as a strip of columns across the mouth, every 1/40 of its width, each spanning the column's paint top

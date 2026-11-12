@@ -504,7 +504,18 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 			cornerROut = pose.cornerROut,
 			puckerL = pose.puckerL,
 			puckerR = pose.puckerR,
-		)
+		).also { src ->
+			// The template moves the mouth aside with a smirk: the corner it moves toward rises by a fifth of the width.
+			// A mouth drawn shut rests as a line, and that tilt reads as the line twisting; it keeps the move aside and
+			// [SHUT_MOUTH_X_TILT] of the rise.
+			if (target.strokeU0World != null && abs(pose.mouthX) > 1e-6f) {
+				val level = model.evaluateNormalized(openY = openEff, form = formEff, press = pose.press, width = widthEff,
+					funnel = pose.funnel, shrug = pose.shrug, jaw = pose.jaw, cornerLUp = pose.cornerLUp, cornerLDown = pose.cornerLDown,
+					cornerRUp = pose.cornerRUp, cornerRDown = pose.cornerRDown, cornerLOut = pose.cornerLOut, cornerROut = pose.cornerROut,
+					puckerL = pose.puckerL, puckerR = pose.puckerR)
+				for (k in 1 until src.size step 2) src[k] = level[k] + SHUT_MOUTH_X_TILT * (src[k] - level[k])
+			}
+		}
 		val hasAsym = abs(pose.mouthX) > 1e-6f ||
 			abs(pose.cornerLUp) > 1e-6f || abs(pose.cornerLDown) > 1e-6f ||
 			abs(pose.cornerRUp) > 1e-6f || abs(pose.cornerRDown) > 1e-6f ||
@@ -1713,6 +1724,9 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 
 		/** The openness up to which face-capture shapes keep lines drawn shut together, letting go smoothly by it. */
 		private const val SHUT_CAPTURE_OPEN = 0.15f
+
+		/** How much of the template's smirk - the corner rising as the mouth moves aside - a mouth drawn shut keeps. */
+		private const val SHUT_MOUTH_X_TILT = 0.35f
 		private const val NEAREST_STEPS = 96
 		val OPEN_KEYS = floatArrayOf(0f, SWAP, 0.25f, 0.5f, 1f)
 		val PRESS_KEYS = floatArrayOf(-1f, 0f, 1f)
