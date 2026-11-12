@@ -49,6 +49,15 @@ internal class NinePoseFaceRig(
 	val initialAngleZ: Float get() = coordinateSpace.angleDegrees
 
 	companion object {
+		/** How far down the face, in its heights, an ear's middle may lie and still stand on top of the head. */
+		private const val TOP_EAR = 0.1f
+
+		/**
+		 * Whether an ear at [bounds] stands on top of the head (an animal's) rather than at its side over [face]: it
+		 * turns with the head and stays in sight, where an ear at the side goes behind the head.
+		 */
+		fun isTopEar(bounds: Bounds, face: Bounds): Boolean = bounds.centerY < face.top + TOP_EAR * face.height
+
 		val angleXKeys = floatArrayOf(-45f, 0f, 45f)
 		val angleYKeys = floatArrayOf(-30f, 0f, 30f)
 
@@ -114,7 +123,7 @@ internal class NinePoseFaceRig(
 			)
 			val earRegions = groupedRegions(
 				FaceFeature.EAR,
-				nonEmpty.filter { it.semantic.tag == SemanticTag.EARS || it.semantic.tag == SemanticTag.EARWEAR },
+				nonEmpty.filter { (it.semantic.tag == SemanticTag.EARS || it.semantic.tag == SemanticTag.EARWEAR) && !isTopEar(it.bounds, face) },
 				0.12f,
 			)
 			val regions = eyeRegions + irisRegions + browRegions + noseRegions + mouthRegions + earRegions

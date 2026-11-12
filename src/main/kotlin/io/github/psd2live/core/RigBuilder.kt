@@ -1152,8 +1152,9 @@ object RigBuilder {
 		SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN, SemanticTag.MOUTH_CLOSE,
 		SemanticTag.TOOTH_T, SemanticTag.TOOTH_B, SemanticTag.TONGUE ->
 			faceRig.regionFor(FaceFeature.MOUTH, layer.semantic.side)?.let { featureWarpId(it) to it.bounds } ?: (faceWarpId to faceFrame)
-		SemanticTag.EARS, SemanticTag.EARWEAR -> faceRig.regionFor(FaceFeature.EAR, layer.semantic.side)?.let { featureWarpId(it) to it.bounds }
-			?: (faceWarpId to faceFrame)
+		// An ear on top of the head turns with the head, as headwear does; one at its side with the face's ear frame.
+		SemanticTag.EARS, SemanticTag.EARWEAR -> if (NinePoseFaceRig.isTopEar(layer.bounds, faceRig.face)) headWarpId to head
+			else faceRig.regionFor(FaceFeature.EAR, layer.semantic.side)?.let { featureWarpId(it) to it.bounds } ?: (faceWarpId to faceFrame)
 		SemanticTag.FRONT_HAIR -> frontHair?.let { frontHairPhysicsWarpId to it } ?: (headWarpId to head)
 		SemanticTag.BACK_HAIR -> backHair?.let { backHairPhysicsWarpId to it } ?: (headWarpId to head)
 		// The legs stand on the floor apart from the body: nothing that moves the body reaches the feet.
@@ -2422,11 +2423,37 @@ object RigBuilder {
 		if (config.meshOnly || !m.builds(m.OUTFIT_CREATURE, config, io.github.psd2live.core.recipe.RecipeSubject.of(analysis))) return emptyList()
 		val skeleton = config.rigEdits.skeleton?.enabled == true
 		val swing = config.recipe.value(m.OUTFIT_CREATURE.id, "swing") / 100f
+		// A tail's root is its end nearer the body's middle: a tail rising from behind the hips is held at its bottom.
+		val rising = analysis.layers.filter { it.semantic.tag == SemanticTag.TAIL && risesFromBottom(it, analysis.anchors.faceCenterX) }.map { it.bounds }
 		return io.github.psd2live.core.fit.HairChain.plan(analysis.layers, Float.MAX_VALUE, { kind, frame ->
-			if (kind == io.github.psd2live.core.fit.HairKind.EAR) frame.bottom - frame.height * 0.15f else frame.top + frame.height * 0.1f
+			when {
+				kind == io.github.psd2live.core.fit.HairKind.EAR -> frame.bottom - frame.height * 0.15f
+				kind == io.github.psd2live.core.fit.HairKind.ANIMAL_TAIL && rising.any { it.centerX in frame.left..frame.right && it.centerY in frame.top..frame.bottom } ->
+					frame.bottom - frame.height * 0.1f
+				else -> frame.top + frame.height * 0.1f
+			}
 		}, swing, 0.5f, kindOf = { layer ->
 			io.github.psd2live.core.fit.HairKind.partOf(layer)?.takeIf { !(skeleton && layer.semantic.tag in SkeletonAutoBuilder.limbTags) }
 		})
+	}
+
+	/**
+	 * Whether [layer] (a tail) grows up from a root at its bottom: its paint along its bottom rows lies nearer the body's
+	 * middle ([centerX]) than along its top rows.
+	 */
+	private fun risesFromBottom(layer: ClassifiedLayer, centerX: Float): Boolean {
+		val raster = layer.source.raster; val b = layer.source.bounds
+		val w = raster.width; val h = raster.height
+		if (w <= 0 || h <= 1) return false
+		fun middle(rows: IntRange): Float? {
+			var sum = 0.0; var n = 0
+			for (y in rows) for (x in 0 until w) if ((raster.rgba[(y * w + x) * 4 + 3].toInt() and 0xff) >= 128) { sum += x; n++ }
+			return if (n == 0) null else b.left + ((sum / n).toFloat() + 0.5f) * b.width / w
+		}
+		val band = max(1, h / 10)
+		val top = middle(0 until band) ?: return false
+		val bottom = middle(h - band until h) ?: return false
+		return abs(bottom - centerX) < abs(top - centerX)
 	}
 
 	/**
@@ -3492,7 +3519,8 @@ object RigBuilder {
 		SemanticTag.EYEWHITE, SemanticTag.EYELASH, SemanticTag.EYE_CLOSE ->
 			faceRig.regionFor(FaceFeature.EYE, layer.semantic.side) != null
 		SemanticTag.EYEBROW -> faceRig.regionFor(FaceFeature.BROW, layer.semantic.side) != null
-		SemanticTag.EARS, SemanticTag.EARWEAR -> faceRig.regionFor(FaceFeature.EAR, layer.semantic.side) != null
+		SemanticTag.EARS, SemanticTag.EARWEAR -> !NinePoseFaceRig.isTopEar(layer.bounds, faceRig.face) &&
+			faceRig.regionFor(FaceFeature.EAR, layer.semantic.side) != null
 		SemanticTag.NOSE -> faceRig.regionFor(FaceFeature.NOSE, layer.semantic.side) != null
 		SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN, SemanticTag.MOUTH_CLOSE,
 		SemanticTag.TOOTH_T, SemanticTag.TOOTH_B, SemanticTag.TONGUE ->
@@ -4319,8 +4347,9 @@ object RigBuilder {
 			else -> 0f
 		} * config.recipe.value(m.EXPRESSION_CHEEK.id, "strength") / 100f
 		val dark = (if (skin) 1f else 0f) * config.recipe.value(m.EXPRESSION_GLOOM.id, "strength") / 100f
+        // PSD2LIVE_GLOOM_BLUSH=1: a blush goes out with the mood, as a highlight does - a grey face keeps no rosy cheeks.
         return io.github.psd2live.algorithms.binding.MoodChannels.apply(grids, warmth, dark,
-            role == PartRole.HIGHLIGHT, cheek, gloom)
+            role == PartRole.HIGHLIGHT || MoodBlush.fades && tag == SemanticTag.FACE_DETAIL && role == PartRole.BLUSH, cheek, gloom)
 	}
 
 	/** [grids] with the opacity the eye modules give [layer] ([io.github.psd2live.core.fit.EyeModules.opacity]) where it has none of its own. */

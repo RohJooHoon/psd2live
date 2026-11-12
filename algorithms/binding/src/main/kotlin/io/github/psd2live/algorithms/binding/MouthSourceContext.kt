@@ -46,6 +46,12 @@ data class MouthSourceContext(val fit: MouthFit, val options: MouthOptions, val 
                     stroke.forEach { out.finite(it) }
                 }
                 out.finite(frame.closedWeight)
+                // Spans follow the weight, when measured.
+                val spans = listOf(frame.closedUpperSpan65, frame.closedLowerSpan65)
+                if (spans.all { it != null }) for (span in spans) {
+                    require(span!!.size == STATION_COORDINATES)
+                    span.forEach { out.finite(it) }
+                }
             }
         }
         val resource = ModifierAlgorithmResource(bytes.toByteArray())
@@ -88,7 +94,13 @@ data class MouthSourceContext(val fit: MouthFit, val options: MouthOptions, val 
                         val upper = FloatArray(STATION_COORDINATES) { input.finite() }
                         val lower = FloatArray(STATION_COORDINATES) { input.finite() }
                         val weight = if (input.available() > 0) input.finite() else 0f
-                        fit = fit.copy(layered = layered.withClosed(upper, lower, weight))
+                        var closed = layered.withClosed(upper, lower, weight)
+                        if (input.available() > 0) {
+                            val upperSpan = FloatArray(STATION_COORDINATES) { input.finite() }
+                            val lowerSpan = FloatArray(STATION_COORDINATES) { input.finite() }
+                            closed = closed.withSpans(upperSpan, lowerSpan)
+                        }
+                        fit = fit.copy(layered = closed)
                     }
                     require(input.read() == -1) { "Trailing mouth measurements" }
                     MouthSourceContext(fit, options, lineWidth)

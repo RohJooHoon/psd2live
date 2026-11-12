@@ -103,7 +103,8 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 	private val h = fit.opening
 
 	/** The opening's keys: [OPEN_KEYS], and the [MouthOptions.reach] past the drawing where it goes on. */
-	val openKeys: FloatArray = if (options.reach > 1.001f) OPEN_KEYS + options.reach else OPEN_KEYS
+	val openKeys: FloatArray = (if (fit.layered?.closedDrawn == true) SHUT_OPEN_KEYS else OPEN_KEYS)
+		.let { if (options.reach > 1.001f) it + options.reach else it }
 	private val band = min(0.045f, h * 0.18f)
 	private val line = lineWidth ?: 0f
 	private val gap = if (options.exactClose) 0f else (1.2f / fit.width).coerceIn(0.004f, 0.04f)
@@ -522,10 +523,24 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 			abs(pose.cornerLOut) > 1e-6f || abs(pose.cornerROut) > 1e-6f ||
 			abs(pose.puckerL) > 1e-6f || abs(pose.puckerR) > 1e-6f
 
+		// A rounded mouth - puckered or funnelled, as for U and O - opens about a level middle, not the shut line's own bend
+		// (an arch drawn shut would peak the opening and flatten its bottom): lines drawn shut level it as the lips round
+		// and part.
+		val roundness = if (target.strokeU0World == null) 0f
+			else max(pose.funnel, -widthEff).coerceIn(0f, 1f) * smoothstep(0f, SHUT_ROUND_OPEN, openEff)
+		// A heavy line drawn bent (a ㅅ, a cat's ω) opens straightened ([unbent]), and so does the opening about it.
+		val level = max(roundness, if (target.strokeU0World == null) 0f else shutLineHeaviness * smoothstep(0f, SHUT_UNBEND_OPEN, openEff))
+		val poseMidline = closedMidlineLocal?.let { mid ->
+			if (level <= 0f) mid else {
+				val a = mid.first(); val b = mid.last()
+				FloatArray(mid.size) { i -> mid[i] + (a + (b - a) * uDense[i] - mid[i]) * level }
+			}
+		}
+
 		val tr = model.transferToTargetLocal(
 			srcPose, target.u0LocalNorm, target.l0LocalNorm, target.hasLines,
 			extraOpen = extraOpen, closedGap = closedGapNorm, customCurveDelta = customCurveDelta,
-			closedMidlineLocal = closedMidlineLocal,
+			closedMidlineLocal = poseMidline,
 		)
 		val trSym = if (hasAsym) {
 			val srcSym = model.evaluateNormalized(
@@ -541,7 +556,7 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 			model.transferToTargetLocal(
 				srcSym, target.u0LocalNorm, target.l0LocalNorm, target.hasLines,
 				extraOpen = extraOpen, closedGap = closedGapNorm, customCurveDelta = customCurveDelta,
-				closedMidlineLocal = closedMidlineLocal,
+				closedMidlineLocal = poseMidline,
 			)
 		} else tr
 
@@ -557,7 +572,7 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 			val base = model.transferToTargetLocal(
 				model.evaluateNormalized(openY = openEff, form = formEff, press = pose.press, jaw = pose.jaw),
 				target.u0LocalNorm, target.l0LocalNorm, target.hasLines,
-				closedGap = closedGapNorm, customCurveDelta = customCurveDelta, closedMidlineLocal = closedMidlineLocal,
+				closedGap = closedGapNorm, customCurveDelta = customCurveDelta, closedMidlineLocal = poseMidline,
 			)
 			for (curves in listOf(tr, trSym).distinct()) for (i in 0 until stations) {
 				val iy = i * 2 + 1
@@ -565,6 +580,39 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 				val excess = (apart - (base.lowerLocal[iy] - base.upperLocal[iy])).coerceAtLeast(0f) * keepShut
 				curves.upperLocal[iy] += 0.5f * excess
 				curves.lowerLocal[iy] -= 0.5f * excess
+			}
+		}
+
+		// Opening, a heavy line drawn bent levels the opening's middle where it bows up (a ㅅ, a pout): the lips part about
+		// a straight line, not a peak; a smile's dip, which bows down, stays.
+		val levelOpen = if (target.strokeU0World == null) 0f else shutLineHeaviness * smoothstep(0f, SHUT_UNBEND_OPEN, openEff)
+		if (levelOpen > 0f) for (curves in listOf(tr, trSym).distinct()) {
+			val up = curves.upperLocal; val lo = curves.lowerLocal
+			val last = (stations - 1) * 2
+			val a = 0.5f * (up[1] + lo[1]); val b = 0.5f * (up[last + 1] + lo[last + 1])
+			for (i in 0 until stations) {
+				val mid = 0.5f * (up[i * 2 + 1] + lo[i * 2 + 1])
+				val lift = (a + (b - a) * uDense[i] - mid).coerceAtLeast(0f) * levelOpen
+				up[i * 2 + 1] += lift; lo[i * 2 + 1] += lift
+			}
+		}
+
+		// Rounded, the opening is an oval about that level middle: its height at each place along it eased toward an
+		// ellipse's, as tall in the middle as it opens.
+		if (roundness > 0f) for (curves in listOf(tr, trSym).distinct()) {
+			val up = curves.upperLocal; val lo = curves.lowerLocal
+			val left = 0.5f * (up[0] + lo[0]); val right = 0.5f * (up[(stations - 1) * 2] + lo[(stations - 1) * 2])
+			val half = 0.5f * (right - left)
+			if (half <= 1e-5f) continue
+			val center = 0.5f * (left + right)
+			val tallest = (0 until stations).maxOf { 0.5f * (lo[it * 2 + 1] - up[it * 2 + 1]) }
+			if (tallest <= 0f) continue
+			for (i in 0 until stations) {
+				val x = 0.5f * (up[i * 2] + lo[i * 2]); val mid = 0.5f * (up[i * 2 + 1] + lo[i * 2 + 1])
+				val h = 0.5f * (lo[i * 2 + 1] - up[i * 2 + 1])
+				val oval = tallest * kotlin.math.sqrt(max(0f, 1f - ((x - center) / half).let { it * it }))
+				val eased = h + (oval - h) * roundness
+				up[i * 2 + 1] = mid - eased; lo[i * 2 + 1] = mid + eased
 			}
 		}
 
@@ -928,20 +976,106 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 			// Drawn shut, the whole line keeps its weight shut. A heavy line thins as the mouth opens - the lips stretch -
 			// to [SHUT_LINE_OPEN] of its weight and more toward the corners, as a drawn open mouth's lines do: down to
 			// [SHUT_LINE_CORNER] of that at the corner itself. A fine line (as fine as a hand-rigged mouth's) stays as drawn.
-			val open = 1f - (ep.closing[i0] * oms + ep.closing[i1] * s).coerceIn(0f, 1f)
-			val inward = (min(uAt, 1f - uAt) / SHUT_LINE_TAPER_ZONE).coerceIn(0f, 1f)
-			val corner = 1f - inward * inward * (3f - 2f * inward)
-			val thin = open * shutLineHeaviness
-			nu * (1f - (1f - SHUT_LINE_OPEN) * thin) * (1f - (1f - SHUT_LINE_CORNER) * corner * thin)
+			nu * shutThin(i0, i1, s, ep)
 		} else {
 			val keepPx = max(1.6f * target.linePx, 0.045f * target.widthPx)
 			val nuClamped = nu.coerceIn(-keepPx, keepPx)
 			nuClamped * nuScale + (nu - nuClamped) * (1f - closeVal)
 		}
 
-		val posedX = c1x + tau * t1x + nuEff * n1x
-		val posedY = c1y + tau * t1y + nuEff * n1y
+		var posedX = c1x + tau * t1x + nuEff * n1x
+		var posedY = c1y + tau * t1y + nuEff * n1y
+		// A heavy line drawn shut and bent - a ㅅ, a cat's ω - opens straightened and even: as the mouth opens, each of its
+		// points goes over to where the line laid straight along the straight line between the corners, its stroke cut
+		// or filled to one weight, lies on the parting lip.
+		val unbend = shutLineHeaviness * smoothstep(0f, SHUT_UNBEND_OPEN, effectiveOpen(ep.pose.open))
+		if (unbend > 0f) unbent(upper, xRig, yRig, ep)?.let { (ux, uy) ->
+			posedX += (ux - posedX) * unbend; posedY += (uy - posedY) * unbend
+		}
 		return Triple(posedX - xRig, posedY - yRig, uAt)
+	}
+
+	/** How far the mouth has opened from shut, 0 … 1, by its opening at the middle. */
+	private fun shutOpening(ep: EvaluatedPose): Float {
+		val shutRatio = shutEval.openRatio
+		return ((ep.openRatio - shutRatio) / (1f - shutRatio).coerceAtLeast(1e-3f)).coerceIn(0f, 1f)
+	}
+
+	/**
+	 * What is left across a heavy line drawn shut, between stations [i0] and [i1] ([s] along), as the mouth opens: the
+	 * lips stretch it to [SHUT_LINE_OPEN] of its weight, and more toward the corners - down to [SHUT_LINE_CORNER] of
+	 * that at the corner itself - as a drawn open mouth's lines are. A fine line (as fine as a hand-rigged mouth's)
+	 * stays as drawn.
+	 */
+	private fun shutThin(i0: Int, i1: Int, s: Float, ep: EvaluatedPose): Float {
+		val uAt = (i0 + s) / (stations - 1).toFloat()
+		val open = 1f - (ep.closing[i0] * (1f - s) + ep.closing[i1] * s).coerceIn(0f, 1f)
+		val inward = (min(uAt, 1f - uAt) / SHUT_LINE_TAPER_ZONE).coerceIn(0f, 1f)
+		val corner = 1f - inward * inward * (3f - 2f * inward)
+		val thin = open * shutLineHeaviness
+		return (1f - (1f - SHUT_LINE_OPEN) * thin) * (1f - (1f - SHUT_LINE_CORNER) * corner * thin)
+	}
+
+	/** The straight line between a shut mouth's corners: its start, direction, and where its stations lie along and off it. */
+	private class Chord(val ax: Float, val ay: Float, val tx: Float, val ty: Float, val along: FloatArray, val across: FloatArray)
+
+	private val shutChord: Chord? by lazy {
+		val c0 = target.strokeU0World ?: return@lazy null
+		val ax = c0[0]; val ay = c0[1]; val bx = c0[(stations - 1) * 2]; val by = c0[(stations - 1) * 2 + 1]
+		val len = hypot(bx - ax, by - ay).takeIf { it > 1e-3f } ?: return@lazy null
+		val tx = (bx - ax) / len; val ty = (by - ay) / len
+		Chord(ax, ay, tx, ty, FloatArray(stations) { (c0[it * 2] - ax) * tx + (c0[it * 2 + 1] - ay) * ty },
+			FloatArray(stations) { -(c0[it * 2] - ax) * ty + (c0[it * 2 + 1] - ay) * tx })
+	}
+
+	/** A shut line's span ([LayeredMouthFrame.closedUpperSpan65]), the one weight it evens out to, and how far off the shut line it lies. */
+	private class Span(val values: FloatArray, val weight: Float, val offset: Float)
+
+	private fun span(values: FloatArray?): Span? {
+		val chord = shutChord ?: return null
+		if (values == null || values.size != stations * 2) return null
+		val middle = (stations / 4..3 * stations / 4)
+		val weight = middle.map { values[it * 2 + 1] }.sorted().let { it[it.size / 2] }
+		val offset = middle.map { values[it * 2] - chord.across[it] }.average().toFloat()
+		return Span(values, weight, offset)
+	}
+
+	private val upperSpan: Span? by lazy { span(fit.layered?.closedUpperSpan65) }
+	private val lowerSpan: Span? by lazy { span(fit.layered?.closedLowerSpan65) }
+
+	/** Where the point at [xRig], [yRig] of a heavy shut line lies on the parting lip with the line straightened and evened out. */
+	private fun unbent(upper: Boolean, xRig: Float, yRig: Float, ep: EvaluatedPose): Pair<Float, Float>? {
+		val chord = shutChord ?: return null
+		val span = (if (upper) upperSpan else lowerSpan) ?: return null
+		val along = (xRig - chord.ax) * chord.tx + (yRig - chord.ay) * chord.ty
+		val across = -(xRig - chord.ax) * chord.ty + (yRig - chord.ay) * chord.tx
+		val f = chord.along
+		val j = (0 until stations - 1).firstOrNull { along <= f[it + 1] } ?: (stations - 2)
+		val s = ((along - f[j]) / (f[j + 1] - f[j]).coerceAtLeast(1e-4f)).coerceIn(0f, 1f)
+		var tau = along - (f[j] + (f[j + 1] - f[j]) * s)
+		val v = span.values
+		val centre = v[j * 2] * (1f - s) + v[(j + 1) * 2] * s
+		val weight = (v[j * 2 + 1] * (1f - s) + v[(j + 1) * 2 + 1] * s).coerceAtLeast(1e-3f)
+		// One weight all along the line, to its very ends: the ends, drawn tapering, run down the opening's sides as it
+		// opens, where the lines must meet at their full weight or leave the corner bare.
+		val uAt = (j + s) / (stations - 1).toFloat()
+		val even = span.weight
+		val thin = shutThin(j, j + 1, s, ep)
+		val nu = (span.offset + (across - centre) * even / weight) * thin
+		// Each end stretched on past its corner, so the upper and lower lines overlap there.
+		val reach = SHUT_LINE_REACH * (f.last() - f.first())
+		val start = (1f - uAt / SHUT_REACH_ZONE).coerceIn(0f, 1f); val end = (1f - (1f - uAt) / SHUT_REACH_ZONE).coerceIn(0f, 1f)
+		tau += reach * (end * end * (3f - 2f * end) - start * start * (3f - 2f * start))
+		// On the parting lip at that station, as the line itself is set there ([strokeRaw]).
+		val c1 = if (upper) ep.u1World else ep.l1World
+		// Straight from the parting lip itself: the offset that keeps a line where it is drawn shut carries its bend.
+		val cx = c1[j * 2] * (1f - s) + c1[(j + 1) * 2] * s
+		val cy = c1[j * 2 + 1] * (1f - s) + c1[(j + 1) * 2 + 1] * s
+		val t1 = if (upper) ep.tU1 else ep.tL1
+		var tx = t1[j * 2] * (1f - s) + t1[(j + 1) * 2] * s
+		var ty = t1[j * 2 + 1] * (1f - s) + t1[(j + 1) * 2 + 1] * s
+		val len = hypot(tx, ty).coerceAtLeast(1e-8f); tx /= len; ty /= len
+		return (cx + tau * tx - nu * ty) to (cy + tau * ty + nu * tx)
 	}
 
 	private fun strokeMove(upper: Boolean, u: Float, v: Float, pose: Pose): Pair<Float, Float> {
@@ -951,7 +1085,10 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 		val s = (1f - min(uAt, 1f - uAt) / CORNER_ZONE).coerceIn(0f, 1f)
 		if (s <= 0f) return rigDeltaToMouth(ownDx, ownDy)
 		val (otherDx, otherDy, _) = strokeRaw(!upper, xRig, yRig, ep)
-		val w = 0.5f * s * s * (3f - 2f * s)
+		// Heavy lines drawn shut each run along their own lip down the opening's side to the corner, where they meet:
+		// drawn toward each other, their ends would bunch at the corner and leave the sides bare.
+		val shut = if (target.strokeU0World != null) shutLineHeaviness else 0f
+		val w = 0.5f * s * s * (3f - 2f * s) * (1f - shut)
 		return rigDeltaToMouth(ownDx + (otherDx - ownDx) * w, ownDy + (otherDy - ownDy) * w)
 	}
 
@@ -998,8 +1135,12 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 		val lx = ep.l1LocPx[idx * 2] * oms + ep.l1LocPx[(idx + 1) * 2] * s
 		val ly = ep.l1LocPx[idx * 2 + 1] * oms + ep.l1LocPx[(idx + 1) * 2 + 1] * s
 
-		val newXLoc = (1f - fracCl) * ux + fracCl * lx + extraX
-		val newYLoc = (1f - frac) * uy + frac * ly
+		// Past a corner an inside drawn shut over moves with the corner rather than stretching with the opening there (its
+		// column is no taller than a point), drawn in toward it so the lines meeting at the corner cover it.
+		val past = target.strokeU0World != null && extraX != 0f
+		val newXLoc = (1f - fracCl) * ux + fracCl * lx + extraX * (if (past) SHUT_INSIDE_PAST else 1f)
+		val newYLoc = if (past) 0.5f * (uy + ly) + (yLoc - 0.5f * (top0 + bot0)) * ((ly - uy) / span0).coerceIn(0f, 1f)
+			else (1f - frac) * uy + frac * ly
 		val (dxRig, dyRig) = target.localDeltaToRig(newXLoc - xLoc, newYLoc - yLoc)
 		return rigDeltaToMouth(dxRig, dyRig)
 	}
@@ -1716,19 +1857,43 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 		private const val SHUT_LINE_OPEN = 0.45f
 
 		/** What is left of that at the corner itself, with the mouth fully open. */
-		private const val SHUT_LINE_CORNER = 0.5f
+		private const val SHUT_LINE_CORNER = 0.85f
 
 		/** A shut line's weight, in mouth widths, up to which it is fine and keeps its weight, and from which it is heavy. */
 		private const val FINE_LINE = 0.03f
-		private const val HEAVY_LINE = 0.06f
+		private const val HEAVY_LINE = 0.045f
 
 		/** The openness up to which face-capture shapes keep lines drawn shut together, letting go smoothly by it. */
 		private const val SHUT_CAPTURE_OPEN = 0.15f
 
 		/** How much of the template's smirk - the corner rising as the mouth moves aside - a mouth drawn shut keeps. */
 		private const val SHUT_MOUTH_X_TILT = 0.35f
+
+		/** The openness by which a rounded mouth drawn shut has levelled its shut line's bend. */
+		private const val SHUT_ROUND_OPEN = 0.3f
+
+		/** The openness by which a heavy line drawn shut has straightened and evened out ([unbent]). */
+		private const val SHUT_UNBEND_OPEN = 0.12f
+
+		/**
+		 * How far past the corner, in the shut line's length, each heavy line's end reaches as the mouth opens, so the upper
+		 * and lower lines overlap where they meet rather than leaving the corner bare.
+		 */
+		private const val SHUT_LINE_REACH = 0.015f
+
+		/** How much of an inside drawn past a corner of lines drawn shut stays past it as the mouth opens. */
+		private const val SHUT_INSIDE_PAST = 0f
+
+		/** The share of a shut line at each end that stretches to reach past the corner ([SHUT_LINE_REACH]). */
+		private const val SHUT_REACH_ZONE = 0.15f
 		private const val NEAREST_STEPS = 96
 		val OPEN_KEYS = floatArrayOf(0f, SWAP, 0.25f, 0.5f, 1f)
+
+		/**
+		 * The opening's keys for lines drawn shut: one more early on, where a heavy line drawn bent has straightened
+		 * ([SHUT_UNBEND_OPEN]) - between keys a form is only a blend, and would still be bent there.
+		 */
+		val SHUT_OPEN_KEYS = floatArrayOf(0f, SWAP, SHUT_UNBEND_OPEN, 0.25f, 0.5f, 1f)
 		val PRESS_KEYS = floatArrayOf(-1f, 0f, 1f)
 		val FORM_KEYS = floatArrayOf(-1f, -0.5f, 0f, 0.5f, 1f)
 		/** How far from a corner, of the width, the two lip lines' ends blend together. */

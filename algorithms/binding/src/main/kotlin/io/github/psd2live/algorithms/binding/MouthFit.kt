@@ -35,13 +35,27 @@ class LayeredMouthFrame(
 	val closedLower65: FloatArray? = null,
 	/** The shut lines' weight - their dark stroke's thickness, not the skin drawn about them - in frame widths. */
 	val closedWeight: Float = 0f,
+	/**
+	 * Each shut line's stroke across the straight line between the mouth's corners, per station: where its middle lies
+	 * off that line and how thick it is (pairs, in rig units). A heavy line bent shut - a ㅅ, a cat's ω - is straightened
+	 * and evened out by them as the mouth opens. Null when not measured.
+	 */
+	val closedUpperSpan65: FloatArray? = null,
+	val closedLowerSpan65: FloatArray? = null,
 ) {
 	val closedDrawn: Boolean get() = closedUpper65 != null && closedLower65 != null
 
 	/** This frame with the closed strokes [upper] and [lower]. */
 	fun withClosed(upper: FloatArray?, lower: FloatArray?, weight: Float = 0f) = LayeredMouthFrame(hasLines, centerX, centerY, exX, exY, frameWidth,
 		upperWorld65, lowerWorld65, upperLocal65, lowerLocal65, lineNorm, openColsX, openTopY, openBotY,
-		upperLipBoundsLocal, lowerLipBoundsLocal, tongueBoundsLocal, hUtVis0, utSideReserve, hLtVis0, upper, lower, weight)
+		upperLipBoundsLocal, lowerLipBoundsLocal, tongueBoundsLocal, hUtVis0, utSideReserve, hLtVis0, upper, lower, weight,
+		closedUpperSpan65, closedLowerSpan65)
+
+	/** This frame with the shut lines' spans [upper] and [lower] ([closedUpperSpan65]). */
+	fun withSpans(upper: FloatArray?, lower: FloatArray?) = LayeredMouthFrame(hasLines, centerX, centerY, exX, exY, frameWidth,
+		upperWorld65, lowerWorld65, upperLocal65, lowerLocal65, lineNorm, openColsX, openTopY, openBotY,
+		upperLipBoundsLocal, lowerLipBoundsLocal, tongueBoundsLocal, hUtVis0, utSideReserve, hLtVis0, closedUpper65, closedLower65,
+		closedWeight, upper, lower)
 
 	val eyX: Float get() = -exY
 	val eyY: Float get() = exX
@@ -81,7 +95,9 @@ class LayeredMouthFrame(
 			hLtVis0 == other.hLtVis0 &&
 			closedUpper65.contentEquals(other.closedUpper65) &&
 			closedLower65.contentEquals(other.closedLower65) &&
-			closedWeight == other.closedWeight
+			closedWeight == other.closedWeight &&
+			closedUpperSpan65.contentEquals(other.closedUpperSpan65) &&
+			closedLowerSpan65.contentEquals(other.closedLowerSpan65)
 	}
 
 	override fun hashCode(): Int {

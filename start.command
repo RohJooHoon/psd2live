@@ -55,5 +55,7 @@ fi
 export PSD2LIVE_MOUTH_SYNTHESIS="${PSD2LIVE_MOUTH_SYNTHESIS:-1}"
 # 입이 조금 벌어졌을 때 입 안(혀·어두운 부분)을 어둡게 하는 처리를 끕니다. 켜려면: PSD2LIVE_MOUTH_SHADING=1 ./start.command
 export PSD2LIVE_MOUTH_SHADING="${PSD2LIVE_MOUTH_SHADING:-0}"
+# 어두운 표정에서 볼터치도 함께 흐려지게 합니다. 끄려면: PSD2LIVE_GLOOM_BLUSH=0 ./start.command
+export PSD2LIVE_GLOOM_BLUSH="${PSD2LIVE_GLOOM_BLUSH:-1}"
 
 JAVA_HOME="$JDK" exec ./gradlew run -Porg.gradle.java.installations.paths="$JDK" ${ARGS[@]+"${ARGS[@]}"}

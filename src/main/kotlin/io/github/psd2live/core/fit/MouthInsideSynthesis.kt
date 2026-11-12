@@ -42,6 +42,12 @@ object MouthInsideSynthesis {
 
 	private val MOUTHS = setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN)
 
+	/** How far past each end of a split line its lip's skin reaches, in the line's widths. */
+	private const val SKIN_SIDE = 0.15f
+
+	/** The share of its full height a split line's lip skin keeps at the line's ends, fading out past them. */
+	private const val SKIN_END = 0.5f
+
 	/** The least of a split line each lip keeps, in canvas pixels. */
 	private const val MIN_LINE = 2.5f
 
@@ -218,7 +224,11 @@ object MouthInsideSynthesis {
 	                    above: Boolean, id: LayerId, name: String): SourceLayer? {
 		val lb = line.bounds
 		val left = centre.first().x; val width = centre.last().x - left
-		val x0 = lb.left - 2; val x1 = lb.left + lb.width + 2
+		// The skin reaches on past the line's ends, over the inside's corners (drawn wider than the line), so they do not
+		// show beside the lips as they part.
+		val margin = SKIN_SIDE * width
+		val x0 = floor(min(lb.left.toFloat(), left - margin)).toInt() - 2
+		val x1 = ceil(max((lb.left + lb.width).toFloat(), left + width + margin)).toInt() + 2
 		val y0 = floor(min(lb.top.toFloat(), centre.minOf { it.y } - band - thickness)).toInt() - 2
 		val y1 = ceil(max((lb.top + lb.height).toFloat(), centre.maxOf { it.y } + band + thickness)).toInt() + 2
 		val w = x1 - x0; val h = y1 - y0
@@ -226,8 +236,10 @@ object MouthInsideSynthesis {
 		val rgba = ByteArray(w * h * 4)
 		for (x in 0 until w) {
 			val cx = x0 + x + 0.5f
-			val t = ((cx - left) / width.coerceAtLeast(1f)).coerceIn(0f, 1f)
-			val reach = band * sin(PI.toFloat() * t).coerceAtLeast(0f).pow(0.5f)
+			val t = (cx - left) / width.coerceAtLeast(1f)
+			val past = max(-t, t - 1f) * width / margin.coerceAtLeast(1f)  // how far past an end, in margins
+			val reach = band * if (past > 0f) SKIN_END * (1f - past).coerceAtLeast(0f)
+				else SKIN_END + (1f - SKIN_END) * sin(PI.toFloat() * t).coerceAtLeast(0f).pow(0.5f)
 			if (reach <= 0.5f) continue
 			val mid = at(centre, cx)
 			for (y in 0 until h) {

@@ -59,7 +59,9 @@ data class ChainMotion(
 	val bounce: ParameterId get() = ParameterId("${stem}Y")
 	val parameters: List<ParameterId> get() = (0 until regions).flatMap { j -> (0 until kind.segments).map { segment(j, it) } } + bounce
 
-	private val upward: Boolean get() = kind == ChainKind.AHOGE || kind == ChainKind.EAR
+	// An animal's tail rises from a root low on it - a cat's from behind the hips - as often as it hangs from one at its top.
+	private val upward: Boolean get() = kind == ChainKind.AHOGE || kind == ChainKind.EAR ||
+		kind == ChainKind.ANIMAL_TAIL && freeFrom > frame.centerY
 
 	/** How far along the free part a point at [y] lies, 0 at its root and 1 at the layer's far edge. */
 	private fun along(y: Float): Float {

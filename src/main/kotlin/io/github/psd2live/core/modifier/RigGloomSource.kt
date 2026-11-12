@@ -35,7 +35,9 @@ internal object RigGloomSource {
                 val preceding = RigModifierInstance(providerId, provider.type, provider.version, provider.targets, config = provider.config)
                 RigLegacyBindings.values(preceding)["strength"] ?: 100f
             }
-            target.id to GloomInputs.Layer(skin, role == PartRole.HIGHLIGHT, warmth,
+            // PSD2LIVE_GLOOM_BLUSH=1: a blush goes out with the mood, as a highlight does - a grey face keeps no rosy cheeks.
+            target.id to GloomInputs.Layer(skin, role == PartRole.HIGHLIGHT ||
+                io.github.psd2live.core.MoodBlush.fades && tag == SemanticTag.FACE_DETAIL && role == PartRole.BLUSH, warmth,
                 strength(precedingCheekByTarget[target.id], "expression.cheek"),
                 strength(precedingGloomByTarget[target.id], "expression.gloom"))
         }

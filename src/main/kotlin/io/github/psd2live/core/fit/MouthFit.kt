@@ -140,6 +140,7 @@ object MouthFitting {
 			?.let { frame ->
 				if (closed == null) frame
 				else frame.withClosed(closed.first, closed.second, lineWeight(own) / frame.frameWidth.coerceAtLeast(1f))
+					.let { shut -> closedSpans(own, closed.first, toRig)?.let { (u, l) -> shut.withSpans(u, l) } ?: shut }
 			}
 		return Result(baseFit.copy(layered = layeredFrame), null, own)
 	}
@@ -182,6 +183,56 @@ object MouthFitting {
 			if (j % 2 == 0) a * lx - c * ly else a * ly + c * lx
 		}
 		return shut to shut
+	}
+
+	/**
+	 * The shut lines' spans ([io.github.psd2live.algorithms.binding.LayeredMouthFrame.closedUpperSpan65]): each line's
+	 * dark stroke measured across the straight line between the ends of the [shut] line, at its stations.
+	 */
+	private fun closedSpans(own: List<ClassifiedLayer>, shut: FloatArray, toRig: (Float, Float) -> Pair<Float, Float>): Pair<FloatArray, FloatArray>? {
+		val upper = own.filter { it.semantic.role == PartRole.UPPER_LINE }.maxByOrNull { it.opaquePixels } ?: return null
+		val lower = own.filter { it.semantic.role == PartRole.LOWER_LINE }.maxByOrNull { it.opaquePixels } ?: return null
+		val n = shut.size / 2
+		val ax = shut[0]; val ay = shut[1]
+		val len = hypot(shut[(n - 1) * 2] - ax, shut[(n - 1) * 2 + 1] - ay).coerceAtLeast(1f)
+		val tx = (shut[(n - 1) * 2] - ax) / len; val ty = (shut[(n - 1) * 2 + 1] - ay) / len
+		val stations = FloatArray(n) { (shut[it * 2] - ax) * tx + (shut[it * 2 + 1] - ay) * ty }
+		fun span(layer: ClassifiedLayer): FloatArray? {
+			val raster = layer.source.raster; val bounds = layer.source.bounds
+			val rw = raster.width; val rh = raster.height
+			if (rw <= 0 || rh <= 0) return null
+			val sx = bounds.width / rw.toFloat(); val sy = bounds.height / rh.toFloat()
+			fun lum(i: Int) = (0.2126f * (raster.rgba[i].toInt() and 0xff) + 0.7152f * (raster.rgba[i + 1].toInt() and 0xff) +
+				0.0722f * (raster.rgba[i + 2].toInt() and 0xff)) / 255f
+			val lums = (0 until rw * rh).filter { (raster.rgba[it * 4 + 3].toInt() and 0xff) >= 128 }.map { lum(it * 4) }.sorted()
+			if (lums.size < 8) return null
+			val light = lums[(lums.size * 0.85f).toInt().coerceAtMost(lums.size - 1)]; val dark = lums[(lums.size * 0.02f).toInt()]
+			val cutoff = if (light - dark < 0.15f) Float.MAX_VALUE else dark + 0.5f * (light - dark)
+			val low = FloatArray(n) { Float.MAX_VALUE }; val high = FloatArray(n) { -Float.MAX_VALUE }
+			for (y in 0 until rh) for (x in 0 until rw) {
+				val i = (y * rw + x) * 4
+				if ((raster.rgba[i + 3].toInt() and 0xff) < 128 || lum(i) > cutoff) continue
+				val (px, py) = toRig(bounds.left + (x + 0.5f) * sx, bounds.top + (y + 0.5f) * sy)
+				val along = (px - ax) * tx + (py - ay) * ty; val across = -(px - ax) * ty + (py - ay) * tx
+				var k = stations.indexOfFirst { it >= along }
+				k = when { k < 0 -> n - 1; k > 0 && along - stations[k - 1] < stations[k] - along -> k - 1; else -> k }
+				low[k] = min(low[k], across); high[k] = max(high[k], across)
+			}
+			val pixel = max(sx, sy)
+			val known = (0 until n).filter { low[it] <= high[it] }
+			if (known.size < 2) return null
+			val centre = FloatArray(n) { if (low[it] <= high[it]) 0.5f * (low[it] + high[it]) else Float.NaN }
+			val thick = FloatArray(n) { if (low[it] <= high[it]) high[it] - low[it] + pixel else Float.NaN }
+			for (values in listOf(centre, thick)) for (k in 0 until n) if (values[k].isNaN()) {
+				val a = known.lastOrNull { it < k }; val b = known.firstOrNull { it > k }
+				values[k] = when {
+					a != null && b != null -> values[a] + (values[b] - values[a]) * (k - a) / (b - a).toFloat()
+					else -> values[a ?: b!!]
+				}
+			}
+			return FloatArray(n * 2) { if (it % 2 == 0) centre[it / 2] else thick[it / 2] }
+		}
+		return (span(upper) ?: return null) to (span(lower) ?: return null)
 	}
 
 	/**
