@@ -135,7 +135,10 @@ object MouthFitting {
 		if (baseFit.opening < 0.12f) return Result(null, "the mouth is drawn closed", own)
 		if (baseFit.opening > 1.6f) return Result(null, "the mouth is taller than it is wide", own)
 		val layeredFrame = buildLayeredFrame(main, layers, level, toRig, opensFromInside = closed != null)
-			?.let { if (closed != null) it.withClosed(closed.first, closed.second) else it }
+			?.let { frame ->
+				if (closed == null) frame
+				else frame.withClosed(closed.first, closed.second, lineWeight(own) / frame.frameWidth.coerceAtLeast(1f))
+			}
 		return Result(baseFit.copy(layered = layeredFrame), null, own)
 	}
 
@@ -160,16 +163,49 @@ object MouthFitting {
 		fun along(s: FloatArray, i: Int) = s[i * 2] * lx + s[i * 2 + 1] * ly
 		fun across(s: FloatArray, i: Int) = -s[i * 2] * ly + s[i * 2 + 1] * lx
 		val loAlong = FloatArray(n) { along(lo, it) }; val loAcross = FloatArray(n) { across(lo, it) }
-		val apart = (n / 4..3 * n / 4).maxOf { i ->
-			val a = along(up, i)
+		fun loAt(a: Float): Float {
 			val k = (1 until n).firstOrNull { loAlong[it] >= a } ?: (n - 1)
 			val t = ((a - loAlong[k - 1]) / (loAlong[k] - loAlong[k - 1]).coerceAtLeast(1e-4f)).coerceIn(0f, 1f)
-			abs(across(up, i) - (loAcross[k - 1] + (loAcross[k] - loAcross[k - 1]) * t))
+			return loAcross[k - 1] + (loAcross[k] - loAcross[k - 1]) * t
 		}
-		if (apart > 0.08f * width) return null
+		val apart = (n / 4..3 * n / 4).maxOf { i -> abs(across(up, i) - loAt(along(up, i))) }
+		// The halves of one thick line split into the two lips lie apart by half its weight: still drawn shut.
+		if (apart > 0.12f * width) return null
 		// The inside must open well past the shut lines, or there is nothing to part to.
 		if (main.bounds.height < 0.2f * upper.bounds.width) return null
-		return up to lo
+		// Both lines rest on the one shut line between them: a line split in halves keeps each half's offset from it, so
+		// the halves meet again exactly as drawn.
+		val shut = FloatArray(n * 2) { j ->
+			val i = j / 2; val a = along(up, i); val c = 0.5f * (across(up, i) + loAt(a))
+			if (j % 2 == 0) a * lx - c * ly else a * ly + c * lx
+		}
+		return shut to shut
+	}
+
+	/**
+	 * The mean weight of the lip lines' dark strokes in canvas pixels - per column, how much of each line is well darker
+	 * than its own light colour - averaged over the two lines; 0 without them.
+	 */
+	private fun lineWeight(own: List<ClassifiedLayer>): Float {
+		val lines = listOfNotNull(own.firstOrNull { it.semantic.role == PartRole.UPPER_LINE }, own.firstOrNull { it.semantic.role == PartRole.LOWER_LINE })
+		if (lines.isEmpty()) return 0f
+		return lines.map { layer ->
+			val raster = layer.source.raster; val w = raster.width; val h = raster.height
+			fun lum(p: Int) = (0.2126f * (raster.rgba[p * 4].toInt() and 0xff) + 0.7152f * (raster.rgba[p * 4 + 1].toInt() and 0xff) +
+				0.0722f * (raster.rgba[p * 4 + 2].toInt() and 0xff)) / 255f
+			val opaque = (0 until w * h).filter { (raster.rgba[it * 4 + 3].toInt() and 0xff) >= 128 }
+			if (opaque.size < 8) return@map 0f
+			val lums = opaque.map(::lum).sorted()
+			val light = lums[(lums.size * 0.85f).toInt().coerceAtMost(lums.size - 1)]; val dark = lums[(lums.size * 0.02f).toInt()]
+			val cutoff = if (light - dark < 0.15f) Float.MAX_VALUE else dark + 0.5f * (light - dark)
+			var sum = 0f; var columns = 0
+			for (x in 0 until w) {
+				var n = 0
+				for (y in 0 until h) { val p = y * w + x; if ((raster.rgba[p * 4 + 3].toInt() and 0xff) >= 128 && lum(p) <= cutoff) n++ }
+				if (n > 0) { sum += n; columns++ }
+			}
+			if (columns == 0) 0f else sum / columns * layer.source.bounds.height / h.toFloat()
+		}.average().toFloat()
 	}
 
 	/**

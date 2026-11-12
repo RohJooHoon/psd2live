@@ -3729,8 +3729,13 @@ object RigBuilder {
 		val (parent, frame) = context.parentAndFrame(layer, config)
 		val space = context.headSpaceFor(layer, config)
 		val unitScale = MeshResolution.unitScale(config, context.analysis.source)
-		val contour = config.mouthOutlineEnabled && layer.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) &&
-			context.fittedMouth(config)?.layered != true
+		val fitted = context.fittedMouth(config)
+		// Lip lines drawn shut bend from a line into an arch: traced round their art they are a dozen vertices and bend in
+		// straight pieces, so they take the outlined mouth's column strip, dense along the mouth.
+		val shutLine = fitted?.rig?.fit?.layered?.closedDrawn == true &&
+			layer.semantic.role in setOf(io.github.psd2live.core.PartRole.UPPER_LINE, io.github.psd2live.core.PartRole.LOWER_LINE)
+		val contour = shutLine || config.mouthOutlineEnabled && layer.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) &&
+			fitted?.layered != true
 		val placement = atlas.placementByLayerId.getValue(layer.source.id.raw)
 		val page = atlas.pages[placement.page].image
 		RigBuildProfile.count("source fitting: mouth mesh requests")
@@ -3746,7 +3751,7 @@ object RigBuilder {
 		val stages = stagesOf(cache) ?: return build()
 		// All consumers read these arrays as captured source geometry. Motion settings only affect the frame
 		// and whether the contour replaces the source boundary.
-		val key = listOf(layer, parent == null, frame, space, unitScale, meshSettings(layer, config), config.meshTrace,
+		val key = listOf(layer, parent == null, frame, space, unitScale, meshSettings(layer, config, unitScale), config.meshTrace,
 			config.alphaThreshold, contour, placement, page.width, page.height)
 		return stages.get("fitted mouth source mesh", 128, key, build)
 	}
@@ -3905,7 +3910,7 @@ object RigBuilder {
 		meshCache: PreviewMeshCache?,
 		unitScale: Float,
 	): MeshData {
-		val (settings, unitSpacing) = meshSettings(layer, config)
+		val (settings, unitSpacing) = meshSettings(layer, config, unitScale)
 		val effectiveSpacing = unitSpacing * unitScale
 
 		// Authored tooth layers may contain several disconnected teeth. Keep their complete texture;
@@ -3913,7 +3918,8 @@ object RigBuilder {
 		if (layer.semantic.tag in setOf(SemanticTag.TOOTH_T, SemanticTag.TOOTH_B)) {
 			return buildRectangularFallbackMesh(layer, parentFrame, headSpace, effectiveSpacing)
 		}
-		val adaptive = MeshResolution.mesh(MeshResolution.input(layer.source, config.meshTrace, unitScale), config.alphaThreshold, settings, meshCache)
+		val adaptive = (layer.source as? io.github.psd2live.core.fit.MouthInsideSynthesis.Synthesized)?.let { io.github.psd2live.core.fit.MouthInsideSynthesis.stripMesh(it) }
+			?: MeshResolution.mesh(MeshResolution.input(layer.source, config.meshTrace, unitScale), config.alphaThreshold, settings, meshCache)
 		if (adaptive != null) {
 			val positions = FloatArray(adaptive.positions.size)
 			val canvas = FloatArray(adaptive.positions.size)
@@ -3939,7 +3945,7 @@ object RigBuilder {
 	}
 
 
-	internal fun meshSettings(layer: ClassifiedLayer, config: PipelineConfig) = RigSourceMeasurements.meshSettings(layer, config)
+	internal fun meshSettings(layer: ClassifiedLayer, config: PipelineConfig, unitScale: Float = 0f) = RigSourceMeasurements.meshSettings(layer, config, unitScale)
 
 	/** Conservative fallback for pathological alpha masks or degenerate one-pixel slivers. */
 	private fun buildRectangularFallbackMesh(
@@ -4277,6 +4283,8 @@ object RigBuilder {
 		val mouth = context.fittedMouth(config) ?: return grids
 		val rig = mouth.rig ?: return grids
 		if (!rig.options.depth || !mouth.covers(layer) || FormChannel.MULTIPLY_COLOR in grids.gridsByChannel) return grids
+		// PSD2LIVE_MOUTH_SHADING=0 leaves the inside as drawn at every opening.
+		if (System.getenv("PSD2LIVE_MOUTH_SHADING") == "0") return grids
 		val follow = mouth.follow(layer)
 		// The teeth stay white; the tongue and the dark of the mouth shade.
 		val inside = follow == io.github.psd2live.algorithms.binding.MouthRig.Follow.TONGUE ||

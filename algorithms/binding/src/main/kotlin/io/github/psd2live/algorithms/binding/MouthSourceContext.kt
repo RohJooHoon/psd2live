@@ -45,6 +45,7 @@ data class MouthSourceContext(val fit: MouthFit, val options: MouthOptions, val 
                     require(stroke.size == STATION_COORDINATES)
                     stroke.forEach { out.finite(it) }
                 }
+                out.finite(frame.closedWeight)
             }
         }
         val resource = ModifierAlgorithmResource(bytes.toByteArray())
@@ -86,7 +87,8 @@ data class MouthSourceContext(val fit: MouthFit, val options: MouthOptions, val 
                     if (layered != null && input.available() > 0) {
                         val upper = FloatArray(STATION_COORDINATES) { input.finite() }
                         val lower = FloatArray(STATION_COORDINATES) { input.finite() }
-                        fit = fit.copy(layered = layered.withClosed(upper, lower))
+                        val weight = if (input.available() > 0) input.finite() else 0f
+                        fit = fit.copy(layered = layered.withClosed(upper, lower, weight))
                     }
                     require(input.read() == -1) { "Trailing mouth measurements" }
                     MouthSourceContext(fit, options, lineWidth)

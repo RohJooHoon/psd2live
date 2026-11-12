@@ -182,6 +182,11 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 
 	private val target: TargetGeom = buildTargetGeom()
 
+	/** How heavy the lines drawn shut are, 0 (fine, up to [FINE_LINE] of the width) to 1 (heavy, from [HEAVY_LINE]). */
+	private val shutLineHeaviness: Float = fit.layered?.closedWeight?.let { w ->
+		((w - FINE_LINE) / (HEAVY_LINE - FINE_LINE)).coerceIn(0f, 1f).let { it * it * (3f - 2f * it) }
+	} ?: 0f
+
 	// A whole mouth has no authored closed lip line. Its open contour's midpoint is not a closed-mouth drawing.
 	// Lines drawn shut are one: the lips meet where they are drawn, read across at each station of the open rims.
 	private val closedMidlineLocal: FloatArray? = fit.layered?.takeIf { it.closedDrawn }?.let { lf ->
@@ -454,6 +459,14 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 
 	private val shutEval: EvaluatedPose by lazy { eval(pose(0f, 0f)) }
 
+	/** Per station, where a line drawn shut lies less where the shut rims are: what keeps the shut key the drawing. */
+	private val shutLineOffsetU: FloatArray? by lazy {
+		target.strokeU0World?.let { c0 -> FloatArray(c0.size) { c0[it] - shutEval.u1World[it] } }
+	}
+	private val shutLineOffsetL: FloatArray? by lazy {
+		target.strokeL0World?.let { c0 -> FloatArray(c0.size) { c0[it] - shutEval.l1World[it] } }
+	}
+
 	private fun effectiveOpen(open: Float): Float {
 		if (open <= 0f || open >= 1f || abs(options.early - 0.35f) < 1e-4f) return open
 		val k = (options.early / 0.35f).coerceIn(0.3f, 2.2f)
@@ -520,6 +533,29 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 				closedMidlineLocal = closedMidlineLocal,
 			)
 		} else tr
+
+		// Lines drawn shut part onto an inside drawn wide open, so the little a face-capture shape parts the lips at rest
+		// (a shrug, a widen, a corner) opens them by that much of the whole inside - and under the cap drawn over the shut
+		// lines' middle, which shows while the mouth is shut. Shut, those shapes keep the lips together: they bend and
+		// shift the mouth, and part it no more than the mouth parts without them.
+		val captured = abs(pose.mouthX) > 1e-6f || abs(pose.width) > 1e-6f || abs(pose.funnel) > 1e-6f || abs(pose.shrug) > 1e-6f ||
+			abs(pose.cornerLUp) > 1e-6f || abs(pose.cornerLDown) > 1e-6f || abs(pose.cornerRUp) > 1e-6f || abs(pose.cornerRDown) > 1e-6f ||
+			abs(pose.cornerLOut) > 1e-6f || abs(pose.cornerROut) > 1e-6f || abs(pose.puckerL) > 1e-6f || abs(pose.puckerR) > 1e-6f
+		val keepShut = 1f - smoothstep(0f, SHUT_CAPTURE_OPEN, openEff)
+		if (target.strokeU0World != null && captured && keepShut > 0f && extraOpen <= 0f) {
+			val base = model.transferToTargetLocal(
+				model.evaluateNormalized(openY = openEff, form = formEff, press = pose.press, jaw = pose.jaw),
+				target.u0LocalNorm, target.l0LocalNorm, target.hasLines,
+				closedGap = closedGapNorm, customCurveDelta = customCurveDelta, closedMidlineLocal = closedMidlineLocal,
+			)
+			for (curves in listOf(tr, trSym).distinct()) for (i in 0 until stations) {
+				val iy = i * 2 + 1
+				val apart = curves.lowerLocal[iy] - curves.upperLocal[iy]
+				val excess = (apart - (base.lowerLocal[iy] - base.upperLocal[iy])).coerceAtLeast(0f) * keepShut
+				curves.upperLocal[iy] += 0.5f * excess
+				curves.lowerLocal[iy] -= 0.5f * excess
+			}
+		}
 
 		val w = target.widthPx
 		val u1LocPx = FloatArray(stations * 2) { tr.upperLocal[it] * w }
@@ -842,8 +878,16 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 		val i0 = bestSeg; val i1 = bestSeg + 1; val s = bestT; val oms = 1f - s
 		val c0x = c0[i0 * 2] * oms + c0[i1 * 2] * s
 		val c0y = c0[i0 * 2 + 1] * oms + c0[i1 * 2 + 1] * s
-		val c1x = c1[i0 * 2] * oms + c1[i1 * 2] * s
-		val c1y = c1[i0 * 2 + 1] * oms + c1[i1 * 2 + 1] * s
+		var c1x = c1[i0 * 2] * oms + c1[i1 * 2] * s
+		var c1y = c1[i0 * 2 + 1] * oms + c1[i1 * 2 + 1] * s
+		// Lines drawn shut over a wider inside: shut, they lie exactly as drawn, and as the mouth opens they spread with
+		// it out to the opening's corners - the rims they part to - rather than standing at the opening's width throughout.
+		(if (upper) shutLineOffsetU else shutLineOffsetL)?.let { off ->
+			val shutRatio = shutEval.openRatio
+			val stay = 1f - ((ep.openRatio - shutRatio) / (1f - shutRatio).coerceAtLeast(1e-3f)).coerceIn(0f, 1f)
+			c1x += stay * (off[i0 * 2] * oms + off[i1 * 2] * s)
+			c1y += stay * (off[i0 * 2 + 1] * oms + off[i1 * 2 + 1] * s)
+		}
 
 		var t0x = t0[i0 * 2] * oms + t0[i1 * 2] * s
 		var t0y = t0[i0 * 2 + 1] * oms + t0[i1 * 2 + 1] * s
@@ -857,7 +901,9 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 		t1x /= l1Len; t1y /= l1Len
 		val n1x = -t1y; val n1y = t1x
 
-		val closeVal = ep.closing[i0] * oms + ep.closing[i1] * s
+		// Lines drawn open thin and draw in toward the seam as they shut. Lines drawn shut are already the shut mouth: they
+		// keep their drawing, and their skin, at every opening.
+		val closeVal = if (target.strokeU0World != null) 0f else ep.closing[i0] * oms + ep.closing[i1] * s
 		val relX = xRig - c0x; val relY = yRig - c0y
 		val tau = relX * t0x + relY * t0y
 		val nu = relX * n0x + relY * n0y
@@ -866,13 +912,24 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 		if (!upper && target.isLayeredArt) {
 			nuScale *= (1f - 0.30f * closeVal)
 		}
-		val keepPx = max(1.6f * target.linePx, 0.045f * target.widthPx)
-		val nuClamped = nu.coerceIn(-keepPx, keepPx)
-		val nuEff = nuClamped * nuScale + (nu - nuClamped) * (1f - closeVal)
+		val uAt = (i0 + s) / (stations - 1).toFloat()
+		val nuEff = if (target.strokeU0World != null) {
+			// Drawn shut, the whole line keeps its weight shut. A heavy line thins as the mouth opens - the lips stretch -
+			// to [SHUT_LINE_OPEN] of its weight and more toward the corners, as a drawn open mouth's lines do: down to
+			// [SHUT_LINE_CORNER] of that at the corner itself. A fine line (as fine as a hand-rigged mouth's) stays as drawn.
+			val open = 1f - (ep.closing[i0] * oms + ep.closing[i1] * s).coerceIn(0f, 1f)
+			val inward = (min(uAt, 1f - uAt) / SHUT_LINE_TAPER_ZONE).coerceIn(0f, 1f)
+			val corner = 1f - inward * inward * (3f - 2f * inward)
+			val thin = open * shutLineHeaviness
+			nu * (1f - (1f - SHUT_LINE_OPEN) * thin) * (1f - (1f - SHUT_LINE_CORNER) * corner * thin)
+		} else {
+			val keepPx = max(1.6f * target.linePx, 0.045f * target.widthPx)
+			val nuClamped = nu.coerceIn(-keepPx, keepPx)
+			nuClamped * nuScale + (nu - nuClamped) * (1f - closeVal)
+		}
 
 		val posedX = c1x + tau * t1x + nuEff * n1x
 		val posedY = c1y + tau * t1y + nuEff * n1y
-		val uAt = (i0 + s) / (stations - 1).toFloat()
 		return Triple(posedX - xRig, posedY - yRig, uAt)
 	}
 
@@ -1640,6 +1697,22 @@ class MouthRig(val fit: MouthFit, val options: MouthOptions, lineWidth: Float? =
 	companion object {
 		/** The openness where the lips part and a drawn closed mouth hands over to the open one. */
 		const val SWAP = 0.05f
+
+		/** How far in from each corner, as a share of the mouth, a line drawn shut thins as the mouth opens. */
+		private const val SHUT_LINE_TAPER_ZONE = 0.2f
+
+		/** What is left of a heavy line drawn shut, along its length, with the mouth fully open. */
+		private const val SHUT_LINE_OPEN = 0.45f
+
+		/** What is left of that at the corner itself, with the mouth fully open. */
+		private const val SHUT_LINE_CORNER = 0.5f
+
+		/** A shut line's weight, in mouth widths, up to which it is fine and keeps its weight, and from which it is heavy. */
+		private const val FINE_LINE = 0.03f
+		private const val HEAVY_LINE = 0.06f
+
+		/** The openness up to which face-capture shapes keep lines drawn shut together, letting go smoothly by it. */
+		private const val SHUT_CAPTURE_OPEN = 0.15f
 		private const val NEAREST_STEPS = 96
 		val OPEN_KEYS = floatArrayOf(0f, SWAP, 0.25f, 0.5f, 1f)
 		val PRESS_KEYS = floatArrayOf(-1f, 0f, 1f)

@@ -20,7 +20,7 @@ internal class WorkspaceSourceImporter(
         val bytes = RigBuildProfile.threadStage("source import: read PSD bytes") { Files.readAllBytes(path) }
         RigBuildProfile.threadStage("source import: decode PSD") {
             require(PsdReader.matches(bytes)) { "Invalid PSD file" }
-            PsdReader.read(bytes)
+            io.github.psd2live.core.fit.MouthInsideSynthesis.augment(PsdReader.read(bytes))
         }
     } },
     private val readLayout: suspend (Path) -> LayoutManifest.Layout = { path -> runInterruptible(Dispatchers.IO) { LayoutManifest.read(path) } },

@@ -33,13 +33,15 @@ class LayeredMouthFrame(
 	 */
 	val closedUpper65: FloatArray? = null,
 	val closedLower65: FloatArray? = null,
+	/** The shut lines' weight - their dark stroke's thickness, not the skin drawn about them - in frame widths. */
+	val closedWeight: Float = 0f,
 ) {
 	val closedDrawn: Boolean get() = closedUpper65 != null && closedLower65 != null
 
 	/** This frame with the closed strokes [upper] and [lower]. */
-	fun withClosed(upper: FloatArray?, lower: FloatArray?) = LayeredMouthFrame(hasLines, centerX, centerY, exX, exY, frameWidth,
+	fun withClosed(upper: FloatArray?, lower: FloatArray?, weight: Float = 0f) = LayeredMouthFrame(hasLines, centerX, centerY, exX, exY, frameWidth,
 		upperWorld65, lowerWorld65, upperLocal65, lowerLocal65, lineNorm, openColsX, openTopY, openBotY,
-		upperLipBoundsLocal, lowerLipBoundsLocal, tongueBoundsLocal, hUtVis0, utSideReserve, hLtVis0, upper, lower)
+		upperLipBoundsLocal, lowerLipBoundsLocal, tongueBoundsLocal, hUtVis0, utSideReserve, hLtVis0, upper, lower, weight)
 
 	val eyX: Float get() = -exY
 	val eyY: Float get() = exX
@@ -78,7 +80,8 @@ class LayeredMouthFrame(
 			utSideReserve == other.utSideReserve &&
 			hLtVis0 == other.hLtVis0 &&
 			closedUpper65.contentEquals(other.closedUpper65) &&
-			closedLower65.contentEquals(other.closedLower65)
+			closedLower65.contentEquals(other.closedLower65) &&
+			closedWeight == other.closedWeight
 	}
 
 	override fun hashCode(): Int {

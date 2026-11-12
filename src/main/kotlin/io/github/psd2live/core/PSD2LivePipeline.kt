@@ -57,7 +57,7 @@ class PSD2LivePipeline {
 		require(Files.isRegularFile(psd)) { tr("error.psdMissing", psd) }
 		val bytes = Files.readAllBytes(psd)
 		require(PsdReader.matches(bytes)) { tr("error.invalidPsd", psd) }
-		return PsdReader.read(bytes)
+		return io.github.psd2live.core.fit.MouthInsideSynthesis.augment(PsdReader.read(bytes))
 	}
 
 	fun buildPreview(psd: Path, config: PipelineConfig = PipelineConfig(),

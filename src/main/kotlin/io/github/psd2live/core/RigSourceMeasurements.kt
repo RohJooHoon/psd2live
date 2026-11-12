@@ -1,6 +1,7 @@
 package io.github.psd2live.core
 
 import kotlin.math.max
+import kotlin.math.min
 
 /** Mesh footprints shared by the generator and source-aware binding capture. */
 internal object RigSourceMeasurements {
@@ -38,7 +39,7 @@ internal object RigSourceMeasurements {
             val key = listOf(analysis.source, analysis.layers, analysis.anchors, analysis.warnings,
                 config.meshTrace, MeshResolution.unitScale(config, analysis.source),
                 config.alphaThreshold, RigMeshSeed.layers(config.rigEdits), resolution.partByLayer,
-                analysis.layers.map { meshSettings(it, config).first })
+                analysis.layers.map { meshSettings(it, config, MeshResolution.unitScale(config, analysis.source)).first })
             return stages.get("framed analysis", 16, key) {
                 framedAnalysis(analysis, config, meshCache, resolution)
             }
@@ -68,7 +69,7 @@ internal object RigSourceMeasurements {
 		meshCache?.prefetch(layers.mapNotNull { layer ->
 			if (layer.source.id.raw in seeds || resolution.partByLayer[layer.source.id.raw] != null || layer.opaquePixels <= 0 ||
 				layer.semantic.tag in setOf(SemanticTag.TOOTH_T, SemanticTag.TOOTH_B)) null
-			else MeshResolution.input(layer.source, config.meshTrace, unitScale) to meshSettings(layer, config).first
+			else MeshResolution.input(layer.source, config.meshTrace, unitScale) to meshSettings(layer, config, unitScale).first
 		}, config.alphaThreshold)
 		return layers.map { layer ->
 			val pinned = resolution.partByLayer[layer.source.id.raw] ?: seeds[layer.source.id.raw]
@@ -123,7 +124,7 @@ internal object RigSourceMeasurements {
 		if (layer.semantic.tag in setOf(SemanticTag.TOOTH_T, SemanticTag.TOOTH_B)) {
 			return rectangle()
 		}
-		val (settings, _) = meshSettings(layer, config)
+		val (settings, _) = meshSettings(layer, config, unitScale)
 		val input = MeshResolution.input(source, config.meshTrace, unitScale)
 		fun generate() = adaptiveFootprint(MeshResolution.mesh(input, config.alphaThreshold, settings, meshCache), source, ::rectangle)
 		val stages = meshCache?.stages?.takeIf { RigStageCache.enabled } ?: return generate()
@@ -176,7 +177,12 @@ internal object RigSourceMeasurements {
 		else MeshFootprint(bounds, bounds.centerX, bounds.centerY)
 	}
 
-	internal fun meshSettings(layer: ClassifiedLayer, config: PipelineConfig): Pair<MeshSettings, Float> {
+	/**
+	 * [unitScale] (canvas pixels per mesh unit), when given, keeps a fitted mouth's layers meshed at least 16 vertices
+	 * across: on a large canvas a small mouth is otherwise only a few vertices wide and bends unevenly, one side unlike
+	 * the other.
+	 */
+	internal fun meshSettings(layer: ClassifiedLayer, config: PipelineConfig, unitScale: Float = 0f): Pair<MeshSettings, Float> {
 		val semanticDensity = when (layer.semantic.tag) {
 			SemanticTag.FACE, SemanticTag.FRONT_HAIR, SemanticTag.BACK_HAIR, SemanticTag.TOPWEAR -> 0.65f
 			SemanticTag.IRIDES, SemanticTag.EYELASH, SemanticTag.EYEWHITE, SemanticTag.EYEBROW,
@@ -207,8 +213,10 @@ internal object RigSourceMeasurements {
 			config.recipe.base("mouth") === io.github.psd2live.core.recipe.RigModules.MOUTH_FITTED &&
 				layer.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN, SemanticTag.MOUTH_CLOSE, SemanticTag.TONGUE, SemanticTag.TOOTH_T, SemanticTag.TOOTH_B)
 		if (fittedLid) {
-			val fine = MeshSettings(outerMargin, edgeMode, edgeWidth, override?.maxEdgeDistance ?: max(4f, config.meshMaxEdgeDistance * 0.12f),
-				override?.interiorDensity ?: max(4f, config.meshInteriorDensity * 0.12f), override?.fillAlgorithm ?: config.meshFillAlgorithm,
+			val mouthCap = if (unitScale > 0f && layer.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN, SemanticTag.MOUTH_CLOSE))
+				max(0.5f, layer.bounds.width / 16f / unitScale) else Float.MAX_VALUE
+			val fine = MeshSettings(outerMargin, edgeMode, edgeWidth, override?.maxEdgeDistance ?: min(mouthCap, max(4f, config.meshMaxEdgeDistance * 0.12f)),
+				override?.interiorDensity ?: min(1.5f * mouthCap, max(4f, config.meshInteriorDensity * 0.12f)), override?.fillAlgorithm ?: config.meshFillAlgorithm,
 				override?.suppressBoundaryDiagonals ?: config.meshSuppressBoundaryDiagonals,
 				override?.fillParameters ?: config.meshFillParameters, override?.wrap ?: config.meshWrap)
 			return fine to fine.maxEdgeDistance

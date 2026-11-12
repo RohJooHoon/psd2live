@@ -142,7 +142,8 @@ class MouthFittedAlgorithm : ChangingModifierAlgorithmPlugin {
                 else if (channels[FormChannel.OPACITY]?.axes?.any { it.parameterId == mouthOpen } == true)
                     channels.remove(FormChannel.OPACITY)
             }
-            if (mouth?.options?.depth == true && covered && FormChannel.MULTIPLY_COLOR !in channels &&
+            // PSD2LIVE_MOUTH_SHADING=0 leaves the inside as drawn at every opening (no darkening while barely open).
+            if (mouth?.options?.depth == true && covered && FormChannel.MULTIPLY_COLOR !in channels && System.getenv("PSD2LIVE_MOUTH_SHADING") != "0" &&
                 (follow in inner || follow == MouthRig.Follow.TONGUE ||
                     layer.tag == "MOUTH_OPEN" && layer.role == null && inputs.separateInside)) {
                 channels[FormChannel.MULTIPLY_COLOR] = channel(floatArrayOf(0f, 0.25f, 1f)) { key ->
