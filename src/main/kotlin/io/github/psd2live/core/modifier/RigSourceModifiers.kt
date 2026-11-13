@@ -13,6 +13,7 @@ import io.github.psd2live.format.compile.RigIrBinary
 import io.github.psd2live.format.model.RigIR
 import io.github.psd2live.targets.cubism.PuppetIr
 import kotlinx.serialization.json.*
+import org.umamo.runtime.eval.scalarAt
 import org.umamo.runtime.model.*
 
 /** Immutable source inputs captured with the candidate, never the editor's current selection or a previous output. */
@@ -739,9 +740,29 @@ internal class RigModifierSource(
         return found.values.toList()
     }
 
-    private fun restricted(input: PuppetModel, kept: Set<ParameterId>): PuppetModel =
+    private fun restricted(input: PuppetModel, kept: Set<ParameterId>): PuppetModel {
         // The source mouth is open; removing its binding retains the artwork pose at 1.
-        io.github.psd2live.algorithms.binding.BindingProjection.retain(input, kept, mapOf(StandardParameters.MOUTH_OPEN to 1f))
+        val open = StandardParameters.MOUTH_OPEN
+        val projected = io.github.psd2live.algorithms.binding.BindingProjection.retain(input, kept, mapOf(open to 1f))
+        // That pose is the artwork's shape, not what it shows: every layer is drawn at its own opacity. A layer the open
+        // pose hides - a closed mouth's cap - would otherwise project as hidden, unlike the scaffold's copy of it, and a
+        // binding would carry that difference into its output as an authored change (the cap kept showing, open).
+        // PSD2LIVE_MOUTH_CAP_FADE=1 (start.command sets it) projects it as drawn; by default the locked source binding
+        // versions and their installed workers, which project it hidden, stay matched.
+        if (open in kept || System.getenv("PSD2LIVE_MOUTH_CAP_FADE") != "1") return projected
+        val defaults = input.parameters.associate { it.id to it.default }
+        val originals = input.drawables.associateBy { it.id }
+        return projected.copy(drawables = projected.drawables.map { drawable ->
+            val original = originals[drawable.id] ?: return@map drawable
+            val grid = original.channelGrids[FormChannel.OPACITY] ?: return@map drawable
+            if (grid.axes.none { it.parameterId == open } || grid.axes.any { it.parameterId in kept }) return@map drawable
+            fun at(value: Float) =
+                original.channelGrids.scalarAt(FormChannel.OPACITY, original.opacity, { id -> if (id == open) value else defaults[id] ?: 0f })
+            val pinned = at(1f)
+            if (pinned == at(defaults[open] ?: 0f) || pinned == original.opacity) drawable
+            else drawable.copy(opacity = original.opacity, channelGrids = ChannelGrids(drawable.channelGrids.gridsByChannel - FormChannel.OPACITY))
+        })
+    }
 
     private val sourceScaffolds = HashMap<RigModifierInstance, PuppetModel>()
     private fun scaffold(instance: RigModifierInstance, checkpoint: () -> Unit): PuppetModel {

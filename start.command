@@ -57,5 +57,7 @@ export PSD2LIVE_MOUTH_SYNTHESIS="${PSD2LIVE_MOUTH_SYNTHESIS:-1}"
 export PSD2LIVE_MOUTH_SHADING="${PSD2LIVE_MOUTH_SHADING:-0}"
 # 어두운 표정에서 볼터치도 함께 흐려지게 합니다. 끄려면: PSD2LIVE_GLOOM_BLUSH=0 ./start.command
 export PSD2LIVE_GLOOM_BLUSH="${PSD2LIVE_GLOOM_BLUSH:-1}"
+# 입을 다물 때만 보이는 덮개 레이어(Mouth close cap 등)가 입을 벌려도 혀 위에 남는 문제를 고칩니다. 끄려면: PSD2LIVE_MOUTH_CAP_FADE=0 ./start.command
+export PSD2LIVE_MOUTH_CAP_FADE="${PSD2LIVE_MOUTH_CAP_FADE:-1}"
 
 JAVA_HOME="$JDK" exec ./gradlew run -Porg.gradle.java.installations.paths="$JDK" ${ARGS[@]+"${ARGS[@]}"}
