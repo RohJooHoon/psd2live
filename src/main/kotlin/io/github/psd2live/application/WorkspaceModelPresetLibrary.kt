@@ -94,7 +94,9 @@ internal class WorkspaceModelPresetLibrary(private val node: Preferences) {
         }
     }
     private fun load(): List<WorkspaceModelPresetEntry> {
-        for (entry in defaults) if (!node.nodeExists(entry.id)) write(entry)
+        // A bundled default is written again when missing or left without its chunks (an interrupted write leaves the
+        // node empty), so it never stops the library from loading.
+        for (entry in defaults) if (!node.nodeExists(entry.id) || node.node(entry.id).getInt("parts", 0) !in 1..2048) write(entry)
         return node.childrenNames().map { id ->
             val target = node.node(id)
             val count = target.getInt("parts", 0)

@@ -35,6 +35,15 @@ class WorkspaceModelPresetLibraryTest {
         } finally { node.removeNode(); Preferences.userRoot().flush() }
     }
 
+    @Test fun defaultLeftWithoutChunksIsWrittenAgain() {
+        val node = Preferences.userRoot().node("io.github.psd2live.tests/presets-${UUID.randomUUID()}")
+        try {
+            val expected = WorkspaceModelPresetLibrary(node).exportJson("modern")
+            node.node("modern").clear(); node.flush()
+            assertEquals(expected, WorkspaceModelPresetLibrary(node).exportJson("modern"))
+        } finally { node.removeNode(); Preferences.userRoot().flush() }
+    }
+
     @Test fun templateRebindsGeneratedReferencesWithoutCascadingAcrossRepeatedSwitches(): Unit = runBlocking {
         val source = SyntheticProject(temp.resolve("source"), 1, 12, 1).tree.head().snapshot
         val config = PipelineConfig(atlasSize = 64, meshSpacing = 8,
