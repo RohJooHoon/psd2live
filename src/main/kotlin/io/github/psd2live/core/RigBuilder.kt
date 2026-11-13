@@ -1297,7 +1297,9 @@ object RigBuilder {
         val mouthMasks = maskSources.filter { drawable ->
             drawable.id !in ribbons &&
             classifiedByDrawable.getValue(drawable.id).let { layer -> layer.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) &&
-                layer.semantic.role == null && !layer.source.clipped }
+                layer.semantic.role == null && !layer.source.clipped &&
+                // A lip or lip line (its skin split off included) is no inside: it lies over one.
+                !io.github.psd2live.core.fit.MouthInsideSynthesis.isLip(layer.source, layer.semantic.tag) }
         }
         // A highlight or shadow lying inside the opening is in the mouth too, and so is what is clipped onto it: the inside's base.
         fun inMouth(layer: ClassifiedLayer) = layer.semantic.tag in CharacterAnalyzer.MOUTH_COMPONENT_TAGS ||

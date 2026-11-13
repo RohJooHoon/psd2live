@@ -52,8 +52,9 @@ internal object RigFittedMouthSource {
         return MouthFittedInputs(fitted?.source, fitted?.chin ?: .6f, fitted?.result?.layers?.firstOrNull()?.semantic?.variant,
             context.hasClosedMouth, fitted?.result?.layers?.any { it.semantic.tag == SemanticTag.MOUTH } == true,
             tuning.teethFade, captured, maskSources.filter { id ->
+                // A lip or lip line (its skin split off included) is no inside: it lies over one.
                 layers[id]?.let { it.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) &&
-                    it.semantic.role == null && !it.source.clipped } == true
+                    it.semantic.role == null && !it.source.clipped && !io.github.psd2live.core.fit.MouthInsideSynthesis.isLip(it.source, it.semantic.tag) } == true
             }, head,
             tr("model.deformer.meshShape", "{meshName}"), tr("model.deformer.meshTurn", "{meshName}"),
             MouthFittedInputs.Fallback(if (config.mouthShape == "custom") config.mouthCurve else MouthCurve.preset(config.mouthShape),

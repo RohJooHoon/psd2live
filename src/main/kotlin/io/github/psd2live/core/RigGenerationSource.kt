@@ -93,7 +93,9 @@ internal object RigGenerationSource {
         val creationCoverage = createdCoverage(config.rigEdits)
         val meshSources = (config.meshSource ?: reference).layers.associateBy { it.id.raw }
         val lipInputs = geometry.copy(layers = geometry.layers.filter { it.source !is MouthLipLayer }.map { layer ->
-            meshSources[layer.source.id.raw]?.let { source -> CharacterAnalyzer.classify(source, textureConfig) } ?: layer
+            // Reclassified from its mesh source, a layer keeps the role the analysis inferred for it ([PartRoles.infer]).
+            meshSources[layer.source.id.raw]?.let { source -> CharacterAnalyzer.classify(source, textureConfig)
+                .let { it.copy(semantic = it.semantic.copy(role = layer.semantic.role)) } } ?: layer
         })
         val owned = ArtPrimitiveJournal.ownedLayers(config.rigEdits)
         val superseded = ArtPrimitiveJournal.supersededLayers(config.rigEdits)
@@ -132,7 +134,9 @@ internal object RigGenerationSource {
                     } } ?: error("Generation layer ${layer.source.id.raw} has no current artwork")
                 val classified = resolution.classify(CharacterAnalyzer.classify(artwork, textureConfig), textureConfig)
                 val covered = padded(artwork, layer.source.bounds).let { source -> creationCoverage[artwork.id.raw]?.let { padded(source, it) } ?: source }
-                layer.copy(source = covered, semantic = classified.semantic, bounds = classified.bounds,
+                // The role is the geometry analysis's: inferred among the part's layers ([PartRoles.infer]), which one
+                // layer classified alone cannot see. Losing it (a split source reads its art here) unmakes a layered mouth.
+                layer.copy(source = covered, semantic = classified.semantic.copy(role = layer.semantic.role), bounds = classified.bounds,
                     centroidX = classified.centroidX, centroidY = classified.centroidY,
                     opaquePixels = classified.opaquePixels.coerceAtLeast(1))
             }

@@ -82,6 +82,14 @@ object MouthInsideSynthesis {
 	/** Whether [layer] is a lip line's skin split from its line ([LipSkin]), by its type or its ID ([isSynthesized]). */
 	fun isLipSkin(layer: SourceLayer): Boolean = layer is LipSkin || layer.id.raw.endsWith(SKIN_ID)
 
+	/**
+	 * Whether a mouth layer is a lip or lip line - its skin split off ([isLipSkin]) or named one - and so never the inside
+	 * the mouth's parts are clipped to, whatever role its classification has kept (a source split into pieces can leave
+	 * its mouth layers without one).
+	 */
+	fun isLip(layer: SourceLayer, tag: io.github.psd2live.core.SemanticTag): Boolean =
+		isLipSkin(layer) || PartRoles.fromName(layer.name, layer.groupPath, tag) in FittedMouth.LIPS
+
 	private const val SKIN_ID = "::lip-skin"
 	private val SYNTHESIZED_ID = Regex(".+::(upper-lip-line|lower-lip-line|lip-skin|mouth-inside|mouth-kit-\\d+)")
 
