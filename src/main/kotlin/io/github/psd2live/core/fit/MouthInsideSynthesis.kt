@@ -68,7 +68,42 @@ object MouthInsideSynthesis {
 	 * [art] with a generated mouth inside when its mouth is drawn shut over nothing - first splitting a mouth drawn as one
 	 * shut line into upper and lower lip lines with skin about them ([splitLine]); [art] itself otherwise.
 	 */
-	fun augment(art: SourceArt): SourceArt = addInside(if (enabled) splitLine(art) else art).let { if (enabled) splitSkin(it) else it }
+	fun augment(art: SourceArt): SourceArt {
+		val augmented = addInside(if (enabled) splitLine(art) else art).let { if (enabled) splitSkin(it) else it }
+		return if (augmented === art) art else ordered(augmented)
+	}
+
+	/**
+	 * Whether this synthesis drew [layer] ([Synthesized]). Told by its ID as well as its type: a project keeps its layers
+	 * as plain stored layers, and once saved and opened again only the ID still says what the layer is.
+	 */
+	fun isSynthesized(layer: SourceLayer): Boolean = layer is Synthesized || SYNTHESIZED_ID.matches(layer.id.raw)
+
+	/** Whether [layer] is a lip line's skin split from its line ([LipSkin]), by its type or its ID ([isSynthesized]). */
+	fun isLipSkin(layer: SourceLayer): Boolean = layer is LipSkin || layer.id.raw.endsWith(SKIN_ID)
+
+	private const val SKIN_ID = "::lip-skin"
+	private val SYNTHESIZED_ID = Regex(".+::(upper-lip-line|lower-lip-line|lip-skin|mouth-inside|mouth-kit-\\d+)")
+
+	/**
+	 * [art]'s layers each with its own order, as the PSD's are: from 0 at the top of the list's end down, the list being
+	 * bottom to top. A layer this synthesis adds would otherwise share the order of the layer it came from, and layers that
+	 * tie on order stack however the next sort leaves them - a project saved and opened again can put the inside over the
+	 * lip lines.
+	 */
+	private fun ordered(art: SourceArt): SourceArt {
+		val last = art.layers.lastIndex
+		val layers = art.layers.mapIndexed { index, layer ->
+			val order = last - index
+			when {
+				layer.order == order -> layer
+				layer is LipSkin -> object : LipSkin by layer { override val order = order }
+				layer is Synthesized -> object : Synthesized by layer { override val order = order }
+				else -> object : SourceLayer by layer { override val order = order }
+			}
+		}
+		return object : SourceArt by art { override val layers: List<SourceLayer> = layers }
+	}
 
 	/**
 	 * Lip lines drawn shut on a band of skin (the usual Live2D lip line: the line, and skin about it to cover the
@@ -94,10 +129,12 @@ object MouthInsideSynthesis {
 		if (apart > 0.12f * width) return art
 		val split = listOf(upper, lower).mapNotNull { line -> lineOnly(line)?.let { line to it } }.toMap()
 		if (split.isEmpty()) return art
-		val layers = art.layers.flatMap { layer ->
-			val stroke = split[layer] ?: return@flatMap listOf(layer)
-			listOf(stroke, Skin(LayerId("${layer.id.raw}::lip-skin"), "${layer.name} (skin)", layer.groupPath, layer.order,
-				layer.bounds, outerSkin(layer, if (layer === upper) up else lo, above = layer === upper)))
+		val skins = split.keys.map { layer -> Skin(LayerId("${layer.id.raw}$SKIN_ID"), "${layer.name} (skin)", layer.groupPath,
+			layer.order, layer.bounds, outerSkin(layer, if (layer === upper) up else lo, above = layer === upper)) }
+		// Both skins behind both lines (the list runs bottom to top), and over the inside they are clipped to.
+		val first = art.layers.indexOfFirst { it === upper || it === lower }
+		val layers = art.layers.flatMapIndexed { index, layer ->
+			(if (index == first) skins else emptyList()) + (split[layer] ?: layer)
 		}
 		return object : SourceArt by art { override val layers: List<SourceLayer> = layers }
 	}
@@ -182,7 +219,7 @@ object MouthInsideSynthesis {
 		// parts into two lines of its weight between them, and shut the halves make up exactly the drawn line. A thin line
 		// keeps at least [MIN_LINE] in each copy, overlapping in the middle.
 		val upper = lipLine(line, centre, thickness, band, skin, above = true,
-			LayerId(line.id.raw), "upper lip line") ?: return art
+			LayerId("${line.id.raw}::upper-lip-line"), "upper lip line") ?: return art
 		val lower = lipLine(line, centre, thickness, band, skin, above = false,
 			LayerId("${line.id.raw}::lower-lip-line"), "lower lip line") ?: return art
 		val layers = art.layers.toMutableList().apply { val at = indexOf(line); set(at, upper); add(at + 1, lower) }
@@ -327,14 +364,15 @@ object MouthInsideSynthesis {
 		// pout's arch, a smile's dip) is where the lips meet, and would otherwise put a notch in the open lip.
 		val mid = chord(left, width) { x -> 0.5f * (at(up, x) + at(lo, x)) }
 		val openLeft = left - 0.5f * (OPEN_SPREAD - 1f) * width; val openWidth = OPEN_SPREAD * width
-		// Behind both lines: they take the order of the line further back (orders grow away from the viewer) and come
-		// right after that line in the list, so a stable sort by order puts them behind the line they tie with.
+		// Behind both lines: just below the first of them in the list, which runs bottom to top (the two halves of a split
+		// line tie on order, so the list says which is further back); [augment] then gives each its own order there. The
+		// generated layers take the order of the line further back (orders grow away from the viewer) until then.
 		val back = if (lower.order >= upper.order) lower else upper
 		// A mouth kit's inside, teeth and tongue fitted to this mouth when there is one; else a plain dark opening.
 		val generated = MouthKit.load()?.fit(upper, back.order, openLeft, openWidth, mid)
 			?: listOfNotNull(insideLayer(upper, lower, openLeft, openWidth, mid, darken(lineColor(upper, lower))))
 		if (generated.isEmpty()) return art
-		val layers = art.layers.toMutableList().apply { addAll(indexOfFirst { it === back } + 1, generated) }
+		val layers = art.layers.toMutableList().apply { addAll(indexOfFirst { it === upper || it === lower }, generated) }
 		return object : SourceArt by art { override val layers: List<SourceLayer> = layers }
 	}
 

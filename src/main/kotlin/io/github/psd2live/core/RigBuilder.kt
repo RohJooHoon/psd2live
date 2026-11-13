@@ -1302,7 +1302,7 @@ object RigBuilder {
         // A highlight or shadow lying inside the opening is in the mouth too, and so is what is clipped onto it: the inside's base.
         fun inMouth(layer: ClassifiedLayer) = layer.semantic.tag in CharacterAnalyzer.MOUTH_COMPONENT_TAGS ||
             // A lip line's skin covers the opening as the lips part, and shows nowhere else.
-            layer.source is io.github.psd2live.core.fit.MouthInsideSynthesis.LipSkin ||
+            io.github.psd2live.core.fit.MouthInsideSynthesis.isLipSkin(layer.source) ||
             fittedMouth != null && layer.semantic.tag in setOf(SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN) && (layer.semantic.role != null || layer.source.clipped) && fittedMouth.covers(layer) &&
             fittedMouth.follow(layer).let { it == io.github.psd2live.algorithms.binding.MouthRig.Follow.DEEP || it == io.github.psd2live.algorithms.binding.MouthRig.Follow.INSIDE ||
                 it == io.github.psd2live.algorithms.binding.MouthRig.Follow.OPENING }
@@ -3519,7 +3519,9 @@ object RigBuilder {
 		SemanticTag.EYEWHITE, SemanticTag.EYELASH, SemanticTag.EYE_CLOSE ->
 			faceRig.regionFor(FaceFeature.EYE, layer.semantic.side) != null
 		SemanticTag.EYEBROW -> faceRig.regionFor(FaceFeature.BROW, layer.semantic.side) != null
-		SemanticTag.EARS, SemanticTag.EARWEAR -> !NinePoseFaceRig.isTopEar(layer.bounds, faceRig.face) &&
+		// An ear on top of the head is held by the head itself ([defaultParentAndFrame]), never by a frame of its pair: the
+		// face binding reparents it there, and a pair frame both its sides share would be left behind half carried.
+		SemanticTag.EARS, SemanticTag.EARWEAR -> NinePoseFaceRig.isTopEar(layer.bounds, faceRig.face) ||
 			faceRig.regionFor(FaceFeature.EAR, layer.semantic.side) != null
 		SemanticTag.NOSE -> faceRig.regionFor(FaceFeature.NOSE, layer.semantic.side) != null
 		SemanticTag.MOUTH, SemanticTag.MOUTH_OPEN, SemanticTag.MOUTH_CLOSE,
@@ -3948,7 +3950,7 @@ object RigBuilder {
 		if (layer.semantic.tag in setOf(SemanticTag.TOOTH_T, SemanticTag.TOOTH_B)) {
 			return buildRectangularFallbackMesh(layer, parentFrame, headSpace, effectiveSpacing)
 		}
-		val adaptive = (layer.source as? io.github.psd2live.core.fit.MouthInsideSynthesis.Synthesized)?.let { io.github.psd2live.core.fit.MouthInsideSynthesis.stripMesh(it) }
+		val adaptive = layer.source.takeIf(io.github.psd2live.core.fit.MouthInsideSynthesis::isSynthesized)?.let { io.github.psd2live.core.fit.MouthInsideSynthesis.stripMesh(it) }
 			?: MeshResolution.mesh(MeshResolution.input(layer.source, config.meshTrace, unitScale), config.alphaThreshold, settings, meshCache)
 		if (adaptive != null) {
 			val positions = FloatArray(adaptive.positions.size)
